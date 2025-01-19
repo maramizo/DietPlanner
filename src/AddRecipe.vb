@@ -54,7 +54,7 @@ Public Class AddRecipe
         'Store meal
         Dim meal As New Meal(NameTextBox.Text, CaloriesTextBox.Text, nutritionals, RecipeTextBox.Text, PrepTimeTextBox.Text, CookTimeTextBox.Text)
         Dim json As String
-        If File.Exists("./data/meals.json") Then
+        If Directory.Exists("./data") And File.Exists("./data/meals.json") Then
             json = File.ReadAllText("./data/meals.json")
         Else
             json = "[]"
@@ -62,6 +62,9 @@ Public Class AddRecipe
         Dim meals As List(Of Meal) = JsonConvert.DeserializeObject(Of List(Of Meal))(json)
         meals.Add(meal)
         json = JsonConvert.SerializeObject(meals)
+        If Not Directory.Exists("./data") Then
+            Directory.CreateDirectory("./data")
+        End If
         File.WriteAllText("./data/meals.json", json)
         Close()
     End Sub

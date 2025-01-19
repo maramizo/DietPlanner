@@ -27,6 +27,9 @@ Public Class NutrientInfo
     End Sub
 
     Public Sub Save()
+        If Not Directory.Exists("./data") Then
+            Directory.CreateDirectory("./data")
+        End If
         Dim json = JsonConvert.SerializeObject(RecommendedDailyIntakes)
         File.WriteAllText("./data/recommended.json", json)
     End Sub
