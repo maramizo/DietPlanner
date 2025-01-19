@@ -1,9 +1,7 @@
 ﻿Public Class RecipeView
-    Public Property meal As Meal
 
     Public Sub New(meal As Meal)
         InitializeComponent()
-        Me.meal = meal
         Label1.Text = meal.Name
         For Each nutritional As KeyValuePair(Of String, String) In meal.ViewNutritionals()
             DataGridView1.Rows.Add(nutritional.Key, nutritional.Value)

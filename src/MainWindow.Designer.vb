@@ -34,11 +34,6 @@ Partial Class MainWindow
         ComboBox5 = New ComboBox()
         Label5 = New Label()
         TotalCaloriesLabel = New Label()
-        LinkLabel1 = New LinkLabel()
-        LinkLabel2 = New LinkLabel()
-        LinkLabel4 = New LinkLabel()
-        LinkLabel3 = New LinkLabel()
-        LinkLabel5 = New LinkLabel()
         Button1 = New Button()
         Button2 = New Button()
         Button3 = New Button()
@@ -51,6 +46,11 @@ Partial Class MainWindow
         ClearButton2 = New Button()
         ClearButton1 = New Button()
         ViewDailyFactsButton = New Button()
+        ViewRecipe1 = New Button()
+        ViewRecipe2 = New Button()
+        ViewRecipe4 = New Button()
+        ViewRecipe3 = New Button()
+        ViewRecipe5 = New Button()
         SuspendLayout()
         ' 
         ' ComboBox1
@@ -150,64 +150,15 @@ Partial Class MainWindow
         ' TotalCaloriesLabel
         ' 
         TotalCaloriesLabel.AutoSize = True
-        TotalCaloriesLabel.Location = New Point(185, 194)
+        TotalCaloriesLabel.Location = New Point(134, 194)
         TotalCaloriesLabel.Name = "TotalCaloriesLabel"
         TotalCaloriesLabel.Size = New Size(77, 15)
         TotalCaloriesLabel.TabIndex = 11
         TotalCaloriesLabel.Text = "Total Calories"
         ' 
-        ' LinkLabel1
-        ' 
-        LinkLabel1.AutoSize = True
-        LinkLabel1.Location = New Point(519, 15)
-        LinkLabel1.Name = "LinkLabel1"
-        LinkLabel1.Size = New Size(63, 15)
-        LinkLabel1.TabIndex = 12
-        LinkLabel1.TabStop = True
-        LinkLabel1.Text = "LinkLabel1"
-        ' 
-        ' LinkLabel2
-        ' 
-        LinkLabel2.AutoSize = True
-        LinkLabel2.Location = New Point(519, 44)
-        LinkLabel2.Name = "LinkLabel2"
-        LinkLabel2.Size = New Size(63, 15)
-        LinkLabel2.TabIndex = 13
-        LinkLabel2.TabStop = True
-        LinkLabel2.Text = "LinkLabel2"
-        ' 
-        ' LinkLabel4
-        ' 
-        LinkLabel4.AutoSize = True
-        LinkLabel4.Location = New Point(519, 102)
-        LinkLabel4.Name = "LinkLabel4"
-        LinkLabel4.Size = New Size(63, 15)
-        LinkLabel4.TabIndex = 15
-        LinkLabel4.TabStop = True
-        LinkLabel4.Text = "LinkLabel3"
-        ' 
-        ' LinkLabel3
-        ' 
-        LinkLabel3.AutoSize = True
-        LinkLabel3.Location = New Point(519, 73)
-        LinkLabel3.Name = "LinkLabel3"
-        LinkLabel3.Size = New Size(63, 15)
-        LinkLabel3.TabIndex = 14
-        LinkLabel3.TabStop = True
-        LinkLabel3.Text = "LinkLabel4"
-        ' 
-        ' LinkLabel5
-        ' 
-        LinkLabel5.AutoSize = True
-        LinkLabel5.Location = New Point(519, 131)
-        LinkLabel5.Name = "LinkLabel5"
-        LinkLabel5.Size = New Size(63, 15)
-        LinkLabel5.TabIndex = 16
-        LinkLabel5.TabStop = True
-        LinkLabel5.Text = "LinkLabel5"
-        ' 
         ' Button1
         ' 
+        Button1.Enabled = False
         Button1.Location = New Point(352, 11)
         Button1.Name = "Button1"
         Button1.Size = New Size(89, 23)
@@ -217,6 +168,7 @@ Partial Class MainWindow
         ' 
         ' Button2
         ' 
+        Button2.Enabled = False
         Button2.Location = New Point(352, 40)
         Button2.Name = "Button2"
         Button2.Size = New Size(89, 23)
@@ -226,6 +178,7 @@ Partial Class MainWindow
         ' 
         ' Button3
         ' 
+        Button3.Enabled = False
         Button3.Location = New Point(352, 69)
         Button3.Name = "Button3"
         Button3.Size = New Size(89, 23)
@@ -235,6 +188,7 @@ Partial Class MainWindow
         ' 
         ' Button4
         ' 
+        Button4.Enabled = False
         Button4.Location = New Point(352, 98)
         Button4.Name = "Button4"
         Button4.Size = New Size(89, 23)
@@ -244,6 +198,7 @@ Partial Class MainWindow
         ' 
         ' Button5
         ' 
+        Button5.Enabled = False
         Button5.Location = New Point(352, 127)
         Button5.Name = "Button5"
         Button5.Size = New Size(89, 23)
@@ -253,7 +208,7 @@ Partial Class MainWindow
         ' 
         ' AddButton
         ' 
-        AddButton.Location = New Point(352, 190)
+        AddButton.Location = New Point(263, 190)
         AddButton.Name = "AddButton"
         AddButton.Size = New Size(161, 23)
         AddButton.TabIndex = 22
@@ -307,18 +262,73 @@ Partial Class MainWindow
         ' 
         ' ViewDailyFactsButton
         ' 
-        ViewDailyFactsButton.Location = New Point(519, 190)
+        ViewDailyFactsButton.Location = New Point(445, 190)
         ViewDailyFactsButton.Name = "ViewDailyFactsButton"
         ViewDailyFactsButton.Size = New Size(166, 23)
         ViewDailyFactsButton.TabIndex = 28
         ViewDailyFactsButton.Text = "View Daily Facts"
         ViewDailyFactsButton.UseVisualStyleBackColor = True
         ' 
+        ' ViewRecipe1
+        ' 
+        ViewRecipe1.Enabled = False
+        ViewRecipe1.Location = New Point(519, 11)
+        ViewRecipe1.Name = "ViewRecipe1"
+        ViewRecipe1.Size = New Size(92, 23)
+        ViewRecipe1.TabIndex = 29
+        ViewRecipe1.Text = "View Recipe"
+        ViewRecipe1.UseVisualStyleBackColor = True
+        ' 
+        ' ViewRecipe2
+        ' 
+        ViewRecipe2.Enabled = False
+        ViewRecipe2.Location = New Point(519, 41)
+        ViewRecipe2.Name = "ViewRecipe2"
+        ViewRecipe2.Size = New Size(92, 23)
+        ViewRecipe2.TabIndex = 30
+        ViewRecipe2.Text = "View Recipe"
+        ViewRecipe2.UseVisualStyleBackColor = True
+        ' 
+        ' ViewRecipe4
+        ' 
+        ViewRecipe4.Enabled = False
+        ViewRecipe4.Location = New Point(519, 100)
+        ViewRecipe4.Name = "ViewRecipe4"
+        ViewRecipe4.Size = New Size(92, 23)
+        ViewRecipe4.TabIndex = 32
+        ViewRecipe4.Text = "View Recipe"
+        ViewRecipe4.UseVisualStyleBackColor = True
+        ' 
+        ' ViewRecipe3
+        ' 
+        ViewRecipe3.Enabled = False
+        ViewRecipe3.Location = New Point(519, 70)
+        ViewRecipe3.Name = "ViewRecipe3"
+        ViewRecipe3.Size = New Size(92, 23)
+        ViewRecipe3.TabIndex = 31
+        ViewRecipe3.Text = "View Recipe"
+        ViewRecipe3.UseVisualStyleBackColor = True
+        ' 
+        ' ViewRecipe5
+        ' 
+        ViewRecipe5.Enabled = False
+        ViewRecipe5.Location = New Point(519, 129)
+        ViewRecipe5.Name = "ViewRecipe5"
+        ViewRecipe5.Size = New Size(92, 23)
+        ViewRecipe5.TabIndex = 33
+        ViewRecipe5.Text = "View Recipe"
+        ViewRecipe5.UseVisualStyleBackColor = True
+        ' 
         ' MainWindow
         ' 
         AutoScaleDimensions = New SizeF(7F, 15F)
         AutoScaleMode = AutoScaleMode.Font
-        ClientSize = New Size(708, 231)
+        ClientSize = New Size(620, 231)
+        Controls.Add(ViewRecipe5)
+        Controls.Add(ViewRecipe4)
+        Controls.Add(ViewRecipe3)
+        Controls.Add(ViewRecipe2)
+        Controls.Add(ViewRecipe1)
         Controls.Add(ViewDailyFactsButton)
         Controls.Add(ClearButton5)
         Controls.Add(ClearButton4)
@@ -331,11 +341,6 @@ Partial Class MainWindow
         Controls.Add(Button3)
         Controls.Add(Button2)
         Controls.Add(Button1)
-        Controls.Add(LinkLabel5)
-        Controls.Add(LinkLabel4)
-        Controls.Add(LinkLabel3)
-        Controls.Add(LinkLabel2)
-        Controls.Add(LinkLabel1)
         Controls.Add(TotalCaloriesLabel)
         Controls.Add(Label5)
         Controls.Add(Label4)
@@ -367,11 +372,6 @@ Partial Class MainWindow
     Friend WithEvents ComboBox5 As ComboBox
     Friend WithEvents Label5 As Label
     Friend WithEvents TotalCaloriesLabel As Label
-    Friend WithEvents LinkLabel1 As LinkLabel
-    Friend WithEvents LinkLabel2 As LinkLabel
-    Friend WithEvents LinkLabel4 As LinkLabel
-    Friend WithEvents LinkLabel3 As LinkLabel
-    Friend WithEvents LinkLabel5 As LinkLabel
     Friend WithEvents Button1 As Button
     Friend WithEvents Button2 As Button
     Friend WithEvents Button3 As Button
@@ -384,5 +384,10 @@ Partial Class MainWindow
     Friend WithEvents ClearButton2 As Button
     Friend WithEvents ClearButton1 As Button
     Friend WithEvents ViewDailyFactsButton As Button
+    Friend WithEvents ViewRecipe1 As Button
+    Friend WithEvents ViewRecipe2 As Button
+    Friend WithEvents ViewRecipe4 As Button
+    Friend WithEvents ViewRecipe3 As Button
+    Friend WithEvents ViewRecipe5 As Button
 
 End Class
