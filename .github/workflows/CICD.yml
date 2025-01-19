@@ -14,8 +14,6 @@ jobs:
     steps:
     - name: Checkout
       uses: actions/checkout@v4
-      with:
-        fetch-depth: 0
 
     # Install the .NET Core workload
     - name: Install .NET Core
@@ -37,7 +35,7 @@ jobs:
 
     # Zip
     - name: Zip
-      run: zip -r ./publish.zip ./publish
+      run: Compress-Archive -Path publish/* -Destination release.zip
 
     # Create a release
     - name: Create Release
@@ -59,6 +57,6 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
         upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: ./publish.zip
-        asset_name: publish.zip
+        asset_path: ./release.zip
+        asset_name: release.zip
         asset_content_type: application/zip  
