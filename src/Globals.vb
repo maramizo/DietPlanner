@@ -3,7 +3,7 @@ Imports System.IO
 
 Module Globals
     Public gNutritionals As New List(Of String) From {"Protein", "Fat", "Carbs", "Dietary Fiber", "Trans Fat", "Saturated Fat"}
-    Public mgNutritionals As New List(Of String) From {"Sugar", "Sodium", "Potassium", "Phosphorus", "Calcium", "Iron"}
+    Public mgNutritionals As New List(Of String) From {"Sugar", "Sodium", "Potassium", "Phosphorus", "Calcium", "Iron", "Cholesterol"}
     Public AllNutritionals As New List(Of String)(gNutritionals.Concat(mgNutritionals).OrderBy(Function(n) n).Select(Function(name) StrConv(name, VbStrConv.ProperCase)).ToList())
 End Module
 

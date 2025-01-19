@@ -26,7 +26,7 @@
         Next
 
         For Each unparsedNutritional As KeyValuePair(Of String, Double) In totals
-            Dim nutritional = New Nutrition(unparsedNutritional.Key, unparsedNutritional.Value)
+            Dim nutritional = New Nutrition(unparsedNutritional.Key, Math.Round(unparsedNutritional.Value, 2))
             Dim recommendedAmount As Decimal
             Dim found As Boolean = False
             Try
@@ -41,10 +41,12 @@
             pctRecommended = Math.Round(pctRecommended, 2)
             NutritionalsDataGrid.Rows.Add(nutritional.Name, nutritional.FormattedAmount, pctRecommended & "%", formattedRecommendedAmount)
             'If the nutritional is over the recommended amount, color it red
-            If pctRecommended > 120 Or pctRecommended < 50 Then
+            If pctRecommended > 120 Then
                 NutritionalsDataGrid.Rows(NutritionalsDataGrid.Rows.Count - 1).Cells(2).Style.BackColor = Color.Red
-            ElseIf Not found Then
+            ElseIf pctRecommended < 50 And found Then
                 NutritionalsDataGrid.Rows(NutritionalsDataGrid.Rows.Count - 1).Cells(2).Style.BackColor = Color.Yellow
+            ElseIf found Then
+                NutritionalsDataGrid.Rows(NutritionalsDataGrid.Rows.Count - 1).Cells(2).Style.BackColor = Color.Green
             End If
         Next
 
