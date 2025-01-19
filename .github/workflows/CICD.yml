@@ -38,6 +38,19 @@ jobs:
     - name: Zip
       run: Compress-Archive -Path publish/* -Destination release.zip
 
+    # Versioning
+    - name: Get Previous tag
+      id: previoustag
+      uses: 'WyriHaximus/github-action-get-previous-tag@v1'
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          
+    - name: Get next version
+      id: next
+      uses: 'WyriHaximus/github-action-next-release-version@1.0.0'
+      with:
+        version: ${{ steps.previoustag.outputs.tag }}
+
     # Create a release
     - name: Create Release
       id: create_release
@@ -45,8 +58,8 @@ jobs:
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
-        tag_name: ${{ github.sha }}
-        release_name: Release ${{ github.sha }}
+        tag_name: ${{ steps.next.outputs.version }}
+        release_name: Release ${{ steps.next.outputs.version }}
         draft: false
         prerelease: false
 
