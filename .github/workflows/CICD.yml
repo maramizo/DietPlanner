@@ -39,17 +39,9 @@ jobs:
       run: Compress-Archive -Path publish/* -Destination release.zip
 
     # Versioning
-    - name: Get Previous tag
-      id: previoustag
-      uses: 'WyriHaximus/github-action-get-previous-tag@v1'
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          
-    - name: Get next version
-      id: next
-      uses: 'WyriHaximus/github-action-next-release-version@1.0.0'
-      with:
-        version: ${{ steps.previoustag.outputs.tag }}
+    - name: Get Versioning Data
+      id: versioning
+      uses: Soumeh/Auto-Versioning@main
 
     # Create a release
     - name: Create Release
@@ -58,8 +50,8 @@ jobs:
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
-        tag_name: ${{ steps.next.outputs.version }}
-        release_name: Release ${{ steps.next.outputs.version }}
+        tag_name: ${{ steps.versioning.outputs.tag }}
+        release_name: Release ${{ steps.versioning.outputs.tag }}
         draft: false
         prerelease: false
 
