@@ -49,7 +49,7 @@ Partial Class RecipeView
         DataGridView1.Columns.AddRange(New DataGridViewColumn() {Nutrition, Value})
         DataGridView1.Location = New Point(34, 126)
         DataGridView1.Name = "DataGridView1"
-        DataGridView1.Size = New Size(243, 445)
+        DataGridView1.Size = New Size(387, 445)
         DataGridView1.TabIndex = 0
         ' 
         ' Nutrition
@@ -67,7 +67,7 @@ Partial Class RecipeView
         ' Label1
         ' 
         Label1.AutoSize = True
-        Label1.Location = New Point(180, 20)
+        Label1.Location = New Point(211, 20)
         Label1.Name = "Label1"
         Label1.Size = New Size(41, 15)
         Label1.TabIndex = 1
@@ -112,7 +112,7 @@ Partial Class RecipeView
         ' TotalTime
         ' 
         TotalTime.AutoSize = True
-        TotalTime.Location = New Point(180, 98)
+        TotalTime.Location = New Point(211, 98)
         TotalTime.Name = "TotalTime"
         TotalTime.Size = New Size(61, 15)
         TotalTime.TabIndex = 8
@@ -121,7 +121,7 @@ Partial Class RecipeView
         ' CookTime
         ' 
         CookTime.AutoSize = True
-        CookTime.Location = New Point(180, 72)
+        CookTime.Location = New Point(211, 72)
         CookTime.Name = "CookTime"
         CookTime.Size = New Size(64, 15)
         CookTime.TabIndex = 7
@@ -130,7 +130,7 @@ Partial Class RecipeView
         ' PrepTime
         ' 
         PrepTime.AutoSize = True
-        PrepTime.Location = New Point(180, 47)
+        PrepTime.Location = New Point(211, 47)
         PrepTime.Name = "PrepTime"
         PrepTime.Size = New Size(60, 15)
         PrepTime.TabIndex = 6
@@ -140,7 +140,7 @@ Partial Class RecipeView
         ' 
         AutoScaleDimensions = New SizeF(7F, 15F)
         AutoScaleMode = AutoScaleMode.Font
-        ClientSize = New Size(321, 583)
+        ClientSize = New Size(460, 639)
         Controls.Add(TotalTime)
         Controls.Add(CookTime)
         Controls.Add(PrepTime)

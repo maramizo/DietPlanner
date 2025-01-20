@@ -5,10 +5,12 @@ Module Globals
     Public gNutritionals As New List(Of String) From {"Protein", "Fat", "Carbs", "Dietary Fiber", "Trans Fat", "Saturated Fat"}
     Public mgNutritionals As New List(Of String) From {"Sugar", "Sodium", "Potassium", "Phosphorus", "Calcium", "Iron", "Cholesterol"}
     Public AllNutritionals As New List(Of String)(gNutritionals.Concat(mgNutritionals).OrderBy(Function(n) n).Select(Function(name) StrConv(name, VbStrConv.ProperCase)).ToList())
+    Public ApiKey = File.ReadAllText("./data/apikey.txt")
 End Module
 
 Public Class NutrientInfo
     Public RecommendedDailyIntakes As New Dictionary(Of String, Double)
+    Public ApiKey As String
 
     Public Sub New()
         Try

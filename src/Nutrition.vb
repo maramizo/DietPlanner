@@ -3,7 +3,17 @@
     Public Property Amount As Double
 
     Public Sub New(name As String, amount As Double)
-        Me.Name = StrConv(name, VbStrConv.ProperCase)
+        Dim convertedName = StrConv(name, VbStrConv.ProperCase)
+        If convertedName = "Carbohydrates" Then
+            convertedName = "Carbs"
+        ElseIf convertedName = "Added Sugars" Then
+            convertedName = "Sugar"
+        ElseIf convertedName = "Total Fat" Then
+            convertedName = "Fat"
+        ElseIf convertedName = "Fiber" Then
+            convertedName = "Dietary Fiber"
+        End If
+        Me.Name = convertedName
         Me.Amount = amount
     End Sub
 

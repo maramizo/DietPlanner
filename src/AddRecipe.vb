@@ -72,4 +72,26 @@ Public Class AddRecipe
     Private Sub CancelButton_Click(sender As Object, e As EventArgs) Handles CancelButton.Click
         Close()
     End Sub
+
+    Private Async Sub ScrapeButton_Click(sender As Object, e As EventArgs) Handles ScrapeButton.Click
+        Dim loader = New Loading("Scraping nutritionals...")
+        loader.Show()
+        Dim meal = Await API.ScrapeNutritionals(RecipeTextBox.Text)
+        If meal Is Nothing Then
+            MessageBox.Show("Could not scrape nutritionals")
+            Return
+        End If
+
+        NameTextBox.Text = meal.Name
+        CaloriesTextBox.Text = meal.Calory
+        PrepTimeTextBox.Text = meal.PrepTime
+        CookTimeTextBox.Text = meal.CookTime
+
+        'Clear all grid rows then add the new ones
+        NutritionalsDataGrid.Rows.Clear()
+        For Each nutritional As KeyValuePair(Of String, Double) In meal.Nutritionals
+            NutritionalsDataGrid.Rows.Add(nutritional.Key, nutritional.Value.ToString())
+        Next
+        loader.Close()
+    End Sub
 End Class

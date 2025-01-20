@@ -37,6 +37,7 @@ Partial Class AddRecipe
         PrepTimeLabel = New Label()
         CookTimeTextBox = New TextBox()
         CookTime = New Label()
+        ScrapeButton = New Button()
         CType(NutritionalsDataGrid, ComponentModel.ISupportInitialize).BeginInit()
         SuspendLayout()
         ' 
@@ -46,7 +47,7 @@ Partial Class AddRecipe
         NutritionalsDataGrid.Columns.AddRange(New DataGridViewColumn() {Nutrition, Value})
         NutritionalsDataGrid.Location = New Point(28, 211)
         NutritionalsDataGrid.Name = "NutritionalsDataGrid"
-        NutritionalsDataGrid.Size = New Size(243, 343)
+        NutritionalsDataGrid.Size = New Size(328, 343)
         NutritionalsDataGrid.TabIndex = 0
         ' 
         ' Nutrition
@@ -79,16 +80,16 @@ Partial Class AddRecipe
         ' 
         ' NameTextBox
         ' 
-        NameTextBox.Location = New Point(111, 23)
+        NameTextBox.Location = New Point(121, 23)
         NameTextBox.Name = "NameTextBox"
-        NameTextBox.Size = New Size(160, 23)
+        NameTextBox.Size = New Size(233, 23)
         NameTextBox.TabIndex = 3
         ' 
         ' CaloriesTextBox
         ' 
-        CaloriesTextBox.Location = New Point(111, 59)
+        CaloriesTextBox.Location = New Point(121, 59)
         CaloriesTextBox.Name = "CaloriesTextBox"
-        CaloriesTextBox.Size = New Size(160, 23)
+        CaloriesTextBox.Size = New Size(233, 23)
         CaloriesTextBox.TabIndex = 4
         ' 
         ' SaveButton
@@ -102,7 +103,7 @@ Partial Class AddRecipe
         ' 
         ' CancelButton
         ' 
-        CancelButton.Location = New Point(163, 568)
+        CancelButton.Location = New Point(246, 568)
         CancelButton.Name = "CancelButton"
         CancelButton.Size = New Size(108, 23)
         CancelButton.TabIndex = 6
@@ -111,9 +112,9 @@ Partial Class AddRecipe
         ' 
         ' RecipeTextBox
         ' 
-        RecipeTextBox.Location = New Point(111, 98)
+        RecipeTextBox.Location = New Point(121, 98)
         RecipeTextBox.Name = "RecipeTextBox"
-        RecipeTextBox.Size = New Size(160, 23)
+        RecipeTextBox.Size = New Size(152, 23)
         RecipeTextBox.TabIndex = 8
         ' 
         ' Label3
@@ -127,9 +128,9 @@ Partial Class AddRecipe
         ' 
         ' PrepTimeTextBox
         ' 
-        PrepTimeTextBox.Location = New Point(111, 137)
+        PrepTimeTextBox.Location = New Point(121, 137)
         PrepTimeTextBox.Name = "PrepTimeTextBox"
-        PrepTimeTextBox.Size = New Size(160, 23)
+        PrepTimeTextBox.Size = New Size(233, 23)
         PrepTimeTextBox.TabIndex = 10
         ' 
         ' PrepTimeLabel
@@ -143,9 +144,9 @@ Partial Class AddRecipe
         ' 
         ' CookTimeTextBox
         ' 
-        CookTimeTextBox.Location = New Point(111, 173)
+        CookTimeTextBox.Location = New Point(121, 173)
         CookTimeTextBox.Name = "CookTimeTextBox"
-        CookTimeTextBox.Size = New Size(160, 23)
+        CookTimeTextBox.Size = New Size(233, 23)
         CookTimeTextBox.TabIndex = 12
         ' 
         ' CookTime
@@ -157,11 +158,21 @@ Partial Class AddRecipe
         CookTime.TabIndex = 11
         CookTime.Text = "Cook Time"
         ' 
+        ' ScrapeButton
+        ' 
+        ScrapeButton.Location = New Point(281, 98)
+        ScrapeButton.Name = "ScrapeButton"
+        ScrapeButton.Size = New Size(75, 23)
+        ScrapeButton.TabIndex = 13
+        ScrapeButton.Text = "Scrape"
+        ScrapeButton.UseVisualStyleBackColor = True
+        ' 
         ' AddRecipe
         ' 
         AutoScaleDimensions = New SizeF(7F, 15F)
         AutoScaleMode = AutoScaleMode.Font
-        ClientSize = New Size(299, 603)
+        ClientSize = New Size(398, 603)
+        Controls.Add(ScrapeButton)
         Controls.Add(CookTimeTextBox)
         Controls.Add(CookTime)
         Controls.Add(PrepTimeTextBox)
@@ -198,4 +209,5 @@ Partial Class AddRecipe
     Friend WithEvents PrepTimeLabel As Label
     Friend WithEvents CookTimeTextBox As TextBox
     Friend WithEvents CookTime As Label
+    Friend WithEvents ScrapeButton As Button
 End Class

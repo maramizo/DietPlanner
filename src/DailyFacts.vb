@@ -37,9 +37,14 @@
             End Try
             Dim displayedNutritional As New DisplayedRow
             Dim pctRecommended As Double = nutritional.Amount / recommendedAmount * 100
-            Dim formattedRecommendedAmount = New Nutrition(nutritional.Name, recommendedAmount).FormattedAmount
-            pctRecommended = Math.Round(pctRecommended, 2)
-            NutritionalsDataGrid.Rows.Add(nutritional.Name, nutritional.FormattedAmount, pctRecommended & "%", formattedRecommendedAmount)
+            If Not found Then
+                Dim formattedRecommendedAmount = "—"
+                NutritionalsDataGrid.Rows.Add(nutritional.Name, nutritional.FormattedAmount, "—", formattedRecommendedAmount)
+            Else
+                Dim formattedRecommendedAmount = New Nutrition(nutritional.Name, recommendedAmount).FormattedAmount
+                pctRecommended = Math.Round(pctRecommended, 2)
+                NutritionalsDataGrid.Rows.Add(nutritional.Name, nutritional.FormattedAmount, pctRecommended & "%", formattedRecommendedAmount)
+            End If
             'If the nutritional is over the recommended amount, color it red
             If pctRecommended > 120 Then
                 NutritionalsDataGrid.Rows(NutritionalsDataGrid.Rows.Count - 1).Cells(2).Style.BackColor = Color.Red
