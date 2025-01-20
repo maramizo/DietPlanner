@@ -5,7 +5,7 @@ Imports Newtonsoft.Json
 Imports Newtonsoft.Json.Linq
 
 Module API
-    Dim BaseUrl As String = "https://gs.makeme.it/v2"
+    Dim BaseUrl As String = "https://nstextk72wesj4zq3ck24ug4vm0nalzd.lambda-url.eu-west-1.on.aws/v2"
 
     Public Async Function ScrapeNutritionals(url As String) As Task(Of Meal)
         'Post Request
