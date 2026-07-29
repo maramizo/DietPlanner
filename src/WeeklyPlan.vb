@@ -4,12 +4,15 @@ Public Class WeeklyPlan
     Public Property TargetDailyIntakes As Dictionary(Of String, Double)
     Public Property SelectedRecipeUrls As List(Of String)
     Public Property SelectedRecipeNames As List(Of String)
+    Public Property GenerationMode As String
+    Public Property RandomSeed As Integer
 
     Public Sub New()
         Days = New List(Of PlannedDay)
         TargetDailyIntakes = New Dictionary(Of String, Double)
         SelectedRecipeUrls = New List(Of String)
         SelectedRecipeNames = New List(Of String)
+        GenerationMode = WeekPlanGenerationMode.SelectedRecipesOnly.ToString()
     End Sub
 End Class
 

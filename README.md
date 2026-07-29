@@ -17,12 +17,24 @@ failures remain `Pending` so they can be retried later.
 Scraped directions arrive as ordered Preparation and Cooking step arrays.
 DietPlanner formats the headings, numbering, punctuation, and line breaks locally.
 
-The main window can plan a complete Monday-through-Sunday week from a user-selected
-recipe pool. Every selected recipe appears at least once, all five meal-type slots
-are filled each day, and a deterministic optimizer balances the saved recommended
-daily nutrient targets across the full week while penalizing large day-to-day
-calorie or nutrient variance. The generated plan and its target snapshot are saved
-in `data/week-plan.json`.
+The main window can plan a complete Monday-through-Sunday week in either of two
+modes:
+
+1. Use only checked recipes and include every checked recipe at least once.
+2. Generate freely from the full catalog while guaranteeing any checked recipes
+   at least once.
+
+All five meal-type slots are filled each day. Each click creates a fresh randomized
+shuffle, then balances the saved recommended daily nutrient targets across the
+week while penalizing large day-to-day calorie or nutrient variance. The generated
+plan, mode, random seed, guaranteed recipes, and target snapshot are saved in
+`data/week-plan.json`.
+
+Settings includes four persistent themes with live preview: Fresh Sage, Coastal
+Blue, Berry Bloom, and Midnight Kitchen. The preference is stored in
+`data/settings.json`, which is preserved during automatic updates.
+
+![DietPlanner theme concepts](docs/theme-concepts.png)
 
 `View All Recipes` provides an editable category matrix for the full recipe
 catalog. Breakfast always implies Brunch. A one-time category migration also asks

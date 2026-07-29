@@ -54,6 +54,7 @@ Partial Class MainWindow
         ClearAllButton = New Button()
         PlanWeekButton = New Button()
         ViewAllRecipesButton = New Button()
+        SettingsButton = New Button()
         SuspendLayout()
         '
         ' ComboBox1
@@ -349,11 +350,21 @@ Partial Class MainWindow
         ViewAllRecipesButton.Text = "View All Recipes"
         ViewAllRecipesButton.UseVisualStyleBackColor = True
         '
+        ' SettingsButton
+        '
+        SettingsButton.Location = New Point(15, 225)
+        SettingsButton.Name = "SettingsButton"
+        SettingsButton.Size = New Size(147, 23)
+        SettingsButton.TabIndex = 37
+        SettingsButton.Text = "Settings"
+        SettingsButton.UseVisualStyleBackColor = True
+        '
         ' MainWindow
         '
         AutoScaleDimensions = New SizeF(7F, 15F)
         AutoScaleMode = AutoScaleMode.Font
         ClientSize = New Size(620, 263)
+        Controls.Add(SettingsButton)
         Controls.Add(ViewAllRecipesButton)
         Controls.Add(PlanWeekButton)
         Controls.Add(ClearAllButton)
@@ -425,5 +436,6 @@ Partial Class MainWindow
     Friend WithEvents ClearAllButton As Button
     Friend WithEvents PlanWeekButton As Button
     Friend WithEvents ViewAllRecipesButton As Button
+    Friend WithEvents SettingsButton As Button
 
 End Class

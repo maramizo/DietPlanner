@@ -15,6 +15,10 @@ Partial Class WeekPlanner
 
     <System.Diagnostics.DebuggerStepThrough()> _
     Private Sub InitializeComponent()
+        GenerationModeGroupBox = New GroupBox()
+        SelectedOnlyRadioButton = New RadioButton()
+        FullCatalogRadioButton = New RadioButton()
+        GenerationModeHelpLabel = New Label()
         SelectedRecipesLabel = New Label()
         SelectedRecipesCheckedListBox = New CheckedListBox()
         SelectAllButton = New Button()
@@ -39,18 +43,61 @@ Partial Class WeekPlanner
         WeeklyTargetColumn = New DataGridViewTextBoxColumn()
         PercentColumn = New DataGridViewTextBoxColumn()
         CloseButton = New Button()
+        GenerationModeGroupBox.SuspendLayout()
         CType(PlanDataGrid, ComponentModel.ISupportInitialize).BeginInit()
         CType(SummaryDataGrid, ComponentModel.ISupportInitialize).BeginInit()
         SuspendLayout()
         '
+        ' GenerationModeGroupBox
+        '
+        GenerationModeGroupBox.Controls.Add(GenerationModeHelpLabel)
+        GenerationModeGroupBox.Controls.Add(FullCatalogRadioButton)
+        GenerationModeGroupBox.Controls.Add(SelectedOnlyRadioButton)
+        GenerationModeGroupBox.Location = New Point(20, 14)
+        GenerationModeGroupBox.Name = "GenerationModeGroupBox"
+        GenerationModeGroupBox.Size = New Size(290, 120)
+        GenerationModeGroupBox.TabIndex = 0
+        GenerationModeGroupBox.TabStop = False
+        GenerationModeGroupBox.Text = "Generation mode"
+        '
+        ' SelectedOnlyRadioButton
+        '
+        SelectedOnlyRadioButton.AutoSize = True
+        SelectedOnlyRadioButton.Checked = True
+        SelectedOnlyRadioButton.Location = New Point(12, 23)
+        SelectedOnlyRadioButton.Name = "SelectedOnlyRadioButton"
+        SelectedOnlyRadioButton.Size = New Size(156, 19)
+        SelectedOnlyRadioButton.TabIndex = 0
+        SelectedOnlyRadioButton.TabStop = True
+        SelectedOnlyRadioButton.Text = "Only selected recipes"
+        SelectedOnlyRadioButton.UseVisualStyleBackColor = True
+        '
+        ' FullCatalogRadioButton
+        '
+        FullCatalogRadioButton.AutoSize = True
+        FullCatalogRadioButton.Location = New Point(12, 49)
+        FullCatalogRadioButton.Name = "FullCatalogRadioButton"
+        FullCatalogRadioButton.Size = New Size(216, 19)
+        FullCatalogRadioButton.TabIndex = 1
+        FullCatalogRadioButton.Text = "Generate freely from all recipes"
+        FullCatalogRadioButton.UseVisualStyleBackColor = True
+        '
+        ' GenerationModeHelpLabel
+        '
+        GenerationModeHelpLabel.Location = New Point(28, 74)
+        GenerationModeHelpLabel.Name = "GenerationModeHelpLabel"
+        GenerationModeHelpLabel.Size = New Size(248, 38)
+        GenerationModeHelpLabel.TabIndex = 2
+        GenerationModeHelpLabel.Text = "The plan uses only checked recipes; each one appears at least once."
+        '
         ' SelectedRecipesLabel
         '
         SelectedRecipesLabel.AutoSize = True
-        SelectedRecipesLabel.Location = New Point(20, 20)
+        SelectedRecipesLabel.Location = New Point(20, 145)
         SelectedRecipesLabel.Name = "SelectedRecipesLabel"
-        SelectedRecipesLabel.Size = New Size(244, 15)
-        SelectedRecipesLabel.TabIndex = 0
-        SelectedRecipesLabel.Text = "Recipes to include (each appears at least once)"
+        SelectedRecipesLabel.Size = New Size(238, 15)
+        SelectedRecipesLabel.TabIndex = 1
+        SelectedRecipesLabel.Text = "Recipes to use (each appears at least once)"
         '
         ' SelectedRecipesCheckedListBox
         '
@@ -58,10 +105,10 @@ Partial Class WeekPlanner
         SelectedRecipesCheckedListBox.CheckOnClick = True
         SelectedRecipesCheckedListBox.FormattingEnabled = True
         SelectedRecipesCheckedListBox.HorizontalScrollbar = True
-        SelectedRecipesCheckedListBox.Location = New Point(20, 45)
+        SelectedRecipesCheckedListBox.Location = New Point(20, 170)
         SelectedRecipesCheckedListBox.Name = "SelectedRecipesCheckedListBox"
-        SelectedRecipesCheckedListBox.Size = New Size(290, 544)
-        SelectedRecipesCheckedListBox.TabIndex = 1
+        SelectedRecipesCheckedListBox.Size = New Size(290, 418)
+        SelectedRecipesCheckedListBox.TabIndex = 2
         '
         ' SelectAllButton
         '
@@ -69,7 +116,7 @@ Partial Class WeekPlanner
         SelectAllButton.Location = New Point(20, 598)
         SelectAllButton.Name = "SelectAllButton"
         SelectAllButton.Size = New Size(135, 26)
-        SelectAllButton.TabIndex = 2
+        SelectAllButton.TabIndex = 3
         SelectAllButton.Text = "Select All"
         SelectAllButton.UseVisualStyleBackColor = True
         '
@@ -79,7 +126,7 @@ Partial Class WeekPlanner
         ClearSelectionButton.Location = New Point(175, 598)
         ClearSelectionButton.Name = "ClearSelectionButton"
         ClearSelectionButton.Size = New Size(135, 26)
-        ClearSelectionButton.TabIndex = 3
+        ClearSelectionButton.TabIndex = 4
         ClearSelectionButton.Text = "Clear Selection"
         ClearSelectionButton.UseVisualStyleBackColor = True
         '
@@ -89,8 +136,8 @@ Partial Class WeekPlanner
         GenerateButton.Location = New Point(20, 634)
         GenerateButton.Name = "GenerateButton"
         GenerateButton.Size = New Size(290, 30)
-        GenerateButton.TabIndex = 4
-        GenerateButton.Text = "Generate and Save Week"
+        GenerateButton.TabIndex = 5
+        GenerateButton.Text = "Generate / Shuffle and Save Week"
         GenerateButton.UseVisualStyleBackColor = True
         '
         ' StatusLabel
@@ -100,7 +147,7 @@ Partial Class WeekPlanner
         StatusLabel.Location = New Point(20, 674)
         StatusLabel.Name = "StatusLabel"
         StatusLabel.Size = New Size(290, 34)
-        StatusLabel.TabIndex = 5
+        StatusLabel.TabIndex = 6
         StatusLabel.Text = "Select recipes, then generate a balanced seven-day plan."
         '
         ' PlanLabel
@@ -109,7 +156,7 @@ Partial Class WeekPlanner
         PlanLabel.Location = New Point(335, 20)
         PlanLabel.Name = "PlanLabel"
         PlanLabel.Size = New Size(77, 15)
-        PlanLabel.TabIndex = 6
+        PlanLabel.TabIndex = 7
         PlanLabel.Text = "Seven-day plan"
         '
         ' PlanDataGrid
@@ -136,7 +183,7 @@ Partial Class WeekPlanner
         PlanDataGrid.RowHeadersVisible = False
         PlanDataGrid.SelectionMode = DataGridViewSelectionMode.CellSelect
         PlanDataGrid.Size = New Size(925, 365)
-        PlanDataGrid.TabIndex = 7
+        PlanDataGrid.TabIndex = 8
         PlanDataGrid.DefaultCellStyle.WrapMode = DataGridViewTriState.True
         '
         ' DayColumn
@@ -202,7 +249,7 @@ Partial Class WeekPlanner
         BalanceLabel.Location = New Point(335, 420)
         BalanceLabel.Name = "BalanceLabel"
         BalanceLabel.Size = New Size(925, 34)
-        BalanceLabel.TabIndex = 8
+        BalanceLabel.TabIndex = 9
         BalanceLabel.Text = "Generate a plan to see its day-to-day balance."
         '
         ' SummaryLabel
@@ -211,7 +258,7 @@ Partial Class WeekPlanner
         SummaryLabel.Location = New Point(335, 460)
         SummaryLabel.Name = "SummaryLabel"
         SummaryLabel.Size = New Size(198, 15)
-        SummaryLabel.TabIndex = 9
+        SummaryLabel.TabIndex = 10
         SummaryLabel.Text = "Weekly recommended-intake summary"
         '
         ' SummaryDataGrid
@@ -232,7 +279,7 @@ Partial Class WeekPlanner
         SummaryDataGrid.ReadOnly = True
         SummaryDataGrid.RowHeadersVisible = False
         SummaryDataGrid.Size = New Size(925, 179)
-        SummaryDataGrid.TabIndex = 10
+        SummaryDataGrid.TabIndex = 11
         '
         ' NutrientColumn
         '
@@ -264,7 +311,7 @@ Partial Class WeekPlanner
         CloseButton.Location = New Point(1135, 680)
         CloseButton.Name = "CloseButton"
         CloseButton.Size = New Size(125, 28)
-        CloseButton.TabIndex = 11
+        CloseButton.TabIndex = 12
         CloseButton.Text = "Close"
         CloseButton.UseVisualStyleBackColor = True
         '
@@ -273,6 +320,7 @@ Partial Class WeekPlanner
         AutoScaleDimensions = New SizeF(7.0!, 15.0!)
         AutoScaleMode = AutoScaleMode.Font
         ClientSize = New Size(1280, 728)
+        Controls.Add(GenerationModeGroupBox)
         Controls.Add(CloseButton)
         Controls.Add(SummaryDataGrid)
         Controls.Add(SummaryLabel)
@@ -289,12 +337,18 @@ Partial Class WeekPlanner
         Name = "WeekPlanner"
         StartPosition = FormStartPosition.CenterParent
         Text = "Plan My Week"
+        GenerationModeGroupBox.ResumeLayout(False)
+        GenerationModeGroupBox.PerformLayout()
         CType(PlanDataGrid, ComponentModel.ISupportInitialize).EndInit()
         CType(SummaryDataGrid, ComponentModel.ISupportInitialize).EndInit()
         ResumeLayout(False)
         PerformLayout()
     End Sub
 
+    Friend WithEvents GenerationModeGroupBox As GroupBox
+    Friend WithEvents SelectedOnlyRadioButton As RadioButton
+    Friend WithEvents FullCatalogRadioButton As RadioButton
+    Friend WithEvents GenerationModeHelpLabel As Label
     Friend WithEvents SelectedRecipesLabel As Label
     Friend WithEvents SelectedRecipesCheckedListBox As CheckedListBox
     Friend WithEvents SelectAllButton As Button

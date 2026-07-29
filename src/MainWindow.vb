@@ -294,6 +294,15 @@
         End Using
     End Sub
 
+    Private Sub SettingsButton_Click(
+        sender As Object,
+        e As EventArgs
+    ) Handles SettingsButton.Click
+        Using settings As New SettingsForm()
+            settings.ShowDialog(Me)
+        End Using
+    End Sub
+
     Private Async Sub AddMeal_FormClosed(sender As Object, e As FormClosedEventArgs)
         Try
             Await LoadDataAsync()

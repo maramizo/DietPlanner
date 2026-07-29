@@ -24,6 +24,7 @@ Public Class WeekPlanner
         ApplyAppIcon(Me)
         _allMeals = MealRepository.LoadAll()
         PopulateRecipeChoices()
+        UpdateGenerationModeCopy()
         LoadSavedPlan()
     End Sub
 
@@ -38,7 +39,7 @@ Public Class WeekPlanner
         Dim savedPlan = WeekPlanRepository.Load()
         If savedPlan Is Nothing OrElse savedPlan.Days Is Nothing OrElse
             savedPlan.Days.Count <> WeekPlanGenerator.DayNames.Length Then
-            StatusLabel.Text = "Select recipes, then generate a balanced seven-day plan."
+            SetReadyStatus()
             Return
         End If
         If Not IsSavedPlanCompatible(savedPlan) Then
@@ -48,12 +49,23 @@ Public Class WeekPlanner
         End If
 
         _currentPlan = savedPlan
+        RestoreSavedGenerationMode(savedPlan)
         RestoreSavedSelection(savedPlan)
         DisplayPlan(savedPlan)
         StatusLabel.Text =
             "Loaded the plan generated " &
             savedPlan.GeneratedAt.ToString("g") &
             "."
+    End Sub
+
+    Private Sub RestoreSavedGenerationMode(plan As WeeklyPlan)
+        FullCatalogRadioButton.Checked = String.Equals(
+            plan.GenerationMode,
+            WeekPlanGenerationMode.FullCatalogWithGuarantees.ToString(),
+            StringComparison.OrdinalIgnoreCase
+        )
+        SelectedOnlyRadioButton.Checked = Not FullCatalogRadioButton.Checked
+        UpdateGenerationModeCopy()
     End Sub
 
     Private Function IsSavedPlanCompatible(plan As WeeklyPlan) As Boolean
@@ -131,19 +143,30 @@ Public Class WeekPlanner
             Cast(Of RecipeChoice)().
             Select(Function(choice) choice.Meal).
             ToList()
+        Dim generationMode = GetGenerationMode()
 
         Try
             Dim nutrientInfo As New NutrientInfo()
             _currentPlan = WeekPlanGenerator.Generate(
                 selectedMeals,
+                _allMeals,
+                generationMode,
                 nutrientInfo.RecommendedDailyIntakes
             )
             WeekPlanRepository.Save(_currentPlan)
             DisplayPlan(_currentPlan)
-            StatusLabel.Text =
-                "Balanced plan generated and saved at " &
-                _currentPlan.GeneratedAt.ToString("t") &
-                "."
+            If generationMode =
+                WeekPlanGenerationMode.FullCatalogWithGuarantees Then
+                StatusLabel.Text =
+                    "Shuffled from the full catalog with checked recipes guaranteed; saved at " &
+                    _currentPlan.GeneratedAt.ToString("t") &
+                    "."
+            Else
+                StatusLabel.Text =
+                    "Shuffled using only checked recipes; saved at " &
+                    _currentPlan.GeneratedAt.ToString("t") &
+                    "."
+            End If
         Catch ex As WeeklyPlanException
             MessageBox.Show(
                 ex.Message,
@@ -161,6 +184,49 @@ Public Class WeekPlanner
                 MessageBoxIcon.Error
             )
         End Try
+    End Sub
+
+    Private Function GetGenerationMode() As WeekPlanGenerationMode
+        If FullCatalogRadioButton.Checked Then
+            Return WeekPlanGenerationMode.FullCatalogWithGuarantees
+        End If
+        Return WeekPlanGenerationMode.SelectedRecipesOnly
+    End Function
+
+    Private Sub GenerationMode_CheckedChanged(
+        sender As Object,
+        e As EventArgs
+    ) Handles SelectedOnlyRadioButton.CheckedChanged,
+        FullCatalogRadioButton.CheckedChanged
+        If Not DirectCast(sender, RadioButton).Checked Then Return
+        UpdateGenerationModeCopy()
+        SetReadyStatus()
+    End Sub
+
+    Private Sub UpdateGenerationModeCopy()
+        If FullCatalogRadioButton.Checked Then
+            GenerationModeHelpLabel.Text =
+                "Checked recipes are guaranteed; unchecked recipes can fill the remaining slots."
+            SelectedRecipesLabel.Text =
+                "Guaranteed recipes (optional; at least once)"
+        Else
+            GenerationModeHelpLabel.Text =
+                "The plan uses only checked recipes; each one appears at least once."
+            SelectedRecipesLabel.Text =
+                "Recipes to use (each appears at least once)"
+        End If
+    End Sub
+
+    Private Sub SetReadyStatus()
+        If StatusLabel Is Nothing Then Return
+        If FullCatalogRadioButton IsNot Nothing AndAlso
+            FullCatalogRadioButton.Checked Then
+            StatusLabel.Text =
+                "Check any must-have recipes, then generate or shuffle a full-catalog plan."
+        Else
+            StatusLabel.Text =
+                "Select recipes for every meal type, then generate or shuffle the week."
+        End If
     End Sub
 
     Private Sub DisplayPlan(plan As WeeklyPlan)
@@ -303,7 +369,7 @@ Public Class WeekPlanner
         Dim prefix = If(
             withinGoal,
             "Balanced within the day-to-day variance goal.",
-            "Best balance available from the selected recipes."
+            "Best balance available from the chosen recipe pool."
         )
 
         Return prefix &
