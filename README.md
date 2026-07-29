@@ -31,8 +31,11 @@ plan, mode, random seed, guaranteed recipes, and target snapshot are saved in
 `data/week-plan.json`.
 
 Settings includes four persistent themes with live preview: Fresh Sage, Coastal
-Blue, Berry Bloom, and Midnight Kitchen. The preference is stored in
-`data/settings.json`, which is preserved during automatic updates.
+Blue, Berry Bloom, and Midnight Kitchen. It also provides an installed-font
+selector and 8–12 pt sizing; the default is Segoe UI Variable Text at 10 pt with
+an automatic Segoe UI fallback. Themes now extend into the native Windows title
+bar, including its caption, text, and border colors. These preferences are stored
+in `data/settings.json`, which is preserved during automatic updates.
 
 ![DietPlanner theme concepts](docs/theme-concepts.png)
 

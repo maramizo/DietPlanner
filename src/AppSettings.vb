@@ -3,6 +3,9 @@ Imports System.IO
 
 Public Class DietPlannerSettings
     Public Property ThemeKey As String = ThemeManager.DefaultThemeKey
+    Public Property FontFamilyName As String =
+        ThemeManager.DefaultFontFamilyName
+    Public Property FontSize As Single = ThemeManager.DefaultFontSize
 End Class
 
 Public NotInheritable Class AppSettingsRepository

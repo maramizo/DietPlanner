@@ -5,9 +5,13 @@ Public Class SettingsForm
     Inherits Form
 
     Private ReadOnly _originalThemeKey As String
+    Private ReadOnly _originalFontFamilyName As String
+    Private ReadOnly _originalFontSize As Single
     Private ReadOnly _themeButtons As New Dictionary(Of String, RadioButton)(
         StringComparer.OrdinalIgnoreCase
     )
+    Private ReadOnly _fontFamilyComboBox As New ComboBox()
+    Private ReadOnly _fontSizeNumeric As New NumericUpDown()
     Private ReadOnly _descriptionLabel As New Label()
     Private ReadOnly _previewPanel As New Panel()
     Private ReadOnly _previewTitle As New Label()
@@ -17,13 +21,21 @@ Public Class SettingsForm
     Private ReadOnly _previewSecondaryButton As New Button()
     Private ReadOnly _previewRows As New List(Of Panel)
     Private _selectedThemeKey As String
+    Private _selectedFontFamilyName As String
+    Private _selectedFontSize As Single
+    Private _updatingTypographyControls As Boolean
     Private _saved As Boolean
 
     Public Sub New()
         _originalThemeKey = ThemeManager.CurrentTheme.Key
+        _originalFontFamilyName = ThemeManager.CurrentFontFamilyName
+        _originalFontSize = ThemeManager.CurrentFontSize
         _selectedThemeKey = _originalThemeKey
+        _selectedFontFamilyName = _originalFontFamilyName
+        _selectedFontSize = _originalFontSize
         InitializeSettingsForm()
         ApplyAppIcon(Me)
+        InitializeTypographyControls()
         _themeButtons(_originalThemeKey).Checked = True
         PreviewTheme(ThemeManager.FindTheme(_originalThemeKey))
     End Sub
@@ -34,7 +46,7 @@ Public Class SettingsForm
         FormBorderStyle = FormBorderStyle.FixedDialog
         MaximizeBox = False
         MinimizeBox = False
-        ClientSize = New Size(780, 490)
+        ClientSize = New Size(780, 580)
 
         Dim heading As New Label With {
             .AutoSize = True,
@@ -45,7 +57,7 @@ Public Class SettingsForm
         Dim subheading As New Label With {
             .AutoSize = True,
             .Location = New Point(22, 45),
-            .Text = "Theme changes are previewed immediately across every open window."
+            .Text = "Theme and typography changes are previewed immediately across every open window."
         }
 
         Dim optionsGroup As New GroupBox With {
@@ -74,8 +86,16 @@ Public Class SettingsForm
         }
         BuildPreview(previewGroup)
 
+        Dim typographyGroup As New GroupBox With {
+            .Location = New Point(20, 435),
+            .Name = "TypographyGroup",
+            .Size = New Size(740, 78),
+            .Text = "Typography"
+        }
+        BuildTypographyControls(typographyGroup)
+
         Dim applyButton As New Button With {
-            .Location = New Point(585, 444),
+            .Location = New Point(585, 532),
             .Name = "ApplyThemeButton",
             .Size = New Size(82, 28),
             .Text = "Save"
@@ -84,7 +104,7 @@ Public Class SettingsForm
 
         Dim cancelButton As New Button With {
             .DialogResult = DialogResult.Cancel,
-            .Location = New Point(678, 444),
+            .Location = New Point(678, 532),
             .Name = "CancelThemeButton",
             .Size = New Size(82, 28),
             .Text = "Cancel"
@@ -98,10 +118,79 @@ Public Class SettingsForm
             subheading,
             optionsGroup,
             previewGroup,
+            typographyGroup,
             applyButton,
             cancelButton
         })
         AddHandler FormClosing, AddressOf SettingsForm_FormClosing
+    End Sub
+
+    Private Sub BuildTypographyControls(parent As Control)
+        Dim familyLabel As New Label With {
+            .AutoSize = True,
+            .Location = New Point(15, 34),
+            .Text = "Font family"
+        }
+
+        _fontFamilyComboBox.AutoCompleteMode = AutoCompleteMode.SuggestAppend
+        _fontFamilyComboBox.AutoCompleteSource = AutoCompleteSource.ListItems
+        _fontFamilyComboBox.DropDownStyle = ComboBoxStyle.DropDown
+        _fontFamilyComboBox.Location = New Point(95, 29)
+        _fontFamilyComboBox.Name = "FontFamilyComboBox"
+        _fontFamilyComboBox.Size = New Size(330, 23)
+        AddHandler _fontFamilyComboBox.SelectedIndexChanged,
+            AddressOf TypographySelectionChanged
+        AddHandler _fontFamilyComboBox.Validated,
+            AddressOf TypographySelectionChanged
+
+        Dim sizeLabel As New Label With {
+            .AutoSize = True,
+            .Location = New Point(453, 34),
+            .Text = "Size"
+        }
+
+        _fontSizeNumeric.DecimalPlaces = 1
+        _fontSizeNumeric.Increment = 0.5D
+        _fontSizeNumeric.Location = New Point(490, 29)
+        _fontSizeNumeric.Maximum = CDec(ThemeManager.MaximumFontSize)
+        _fontSizeNumeric.Minimum = CDec(ThemeManager.MinimumFontSize)
+        _fontSizeNumeric.Name = "FontSizeNumeric"
+        _fontSizeNumeric.Size = New Size(64, 23)
+        AddHandler _fontSizeNumeric.ValueChanged,
+            AddressOf TypographySelectionChanged
+
+        Dim noteLabel As New Label With {
+            .AutoSize = True,
+            .Location = New Point(575, 34),
+            .Text = "8–12 pt"
+        }
+
+        parent.Controls.AddRange({
+            familyLabel,
+            _fontFamilyComboBox,
+            sizeLabel,
+            _fontSizeNumeric,
+            noteLabel
+        })
+    End Sub
+
+    Private Sub InitializeTypographyControls()
+        _updatingTypographyControls = True
+        Try
+            _fontFamilyComboBox.Items.Clear()
+            _fontFamilyComboBox.Items.AddRange(
+                ThemeManager.AvailableFontFamilies.
+                    Cast(Of Object)().
+                    ToArray()
+            )
+            _fontFamilyComboBox.SelectedItem = _originalFontFamilyName
+            If _fontFamilyComboBox.SelectedIndex < 0 Then
+                _fontFamilyComboBox.Text = _originalFontFamilyName
+            End If
+            _fontSizeNumeric.Value = CDec(_originalFontSize)
+        Finally
+            _updatingTypographyControls = False
+        End Try
     End Sub
 
     Private Sub AddThemeOption(
@@ -203,6 +292,39 @@ Public Class SettingsForm
         PreviewTheme(theme)
     End Sub
 
+    Private Sub TypographySelectionChanged(sender As Object, e As EventArgs)
+        If _updatingTypographyControls Then Return
+
+        Dim requestedFamily = _fontFamilyComboBox.Text.Trim()
+        If String.IsNullOrWhiteSpace(requestedFamily) Then Return
+        _selectedFontFamilyName = requestedFamily
+        _selectedFontSize = CSng(_fontSizeNumeric.Value)
+        ThemeManager.SelectFont(
+            _selectedFontFamilyName,
+            _selectedFontSize,
+            False
+        )
+        _selectedFontFamilyName = ThemeManager.CurrentFontFamilyName
+        _selectedFontSize = ThemeManager.CurrentFontSize
+        If Not String.Equals(
+            _fontFamilyComboBox.Text,
+            _selectedFontFamilyName,
+            StringComparison.CurrentCultureIgnoreCase
+        ) Then
+            _updatingTypographyControls = True
+            Try
+                _fontFamilyComboBox.SelectedItem = _selectedFontFamilyName
+                If _fontFamilyComboBox.SelectedIndex < 0 Then
+                    _fontFamilyComboBox.Text = _selectedFontFamilyName
+                End If
+            Finally
+                _updatingTypographyControls = False
+            End Try
+        End If
+        ThemeManager.ApplyToOpenForms()
+        PreviewTheme(ThemeManager.CurrentTheme)
+    End Sub
+
     Private Sub PreviewTheme(theme As AppTheme)
         _descriptionLabel.Text = theme.Description
         _previewPanel.BackColor = theme.WindowBackColor
@@ -253,7 +375,13 @@ Public Class SettingsForm
     End Sub
 
     Private Sub ApplyButton_Click(sender As Object, e As EventArgs)
-        ThemeManager.SelectTheme(_selectedThemeKey, True)
+        ThemeManager.SelectTheme(_selectedThemeKey, False)
+        ThemeManager.SelectFont(
+            _selectedFontFamilyName,
+            _selectedFontSize,
+            False
+        )
+        ThemeManager.SavePreferences()
         ThemeManager.ApplyToOpenForms()
         _saved = True
         DialogResult = DialogResult.OK
@@ -275,6 +403,11 @@ Public Class SettingsForm
 
     Private Sub RestoreOriginalTheme()
         ThemeManager.SelectTheme(_originalThemeKey, False)
+        ThemeManager.SelectFont(
+            _originalFontFamilyName,
+            _originalFontSize,
+            False
+        )
         ThemeManager.ApplyToOpenForms()
     End Sub
 End Class

@@ -1,5 +1,7 @@
 Imports System.Drawing
+Imports System.Drawing.Text
 Imports System.IO
+Imports System.Runtime.InteropServices
 Imports System.Windows.Forms
 
 Module AppAppearance
@@ -79,10 +81,19 @@ End Class
 
 Public NotInheritable Class ThemeManager
     Public Const DefaultThemeKey As String = "fresh-sage"
+    Public Const DefaultFontFamilyName As String = "Segoe UI Variable Text"
+    Public Const DefaultFontSize As Single = 10.0F
+    Public Const MinimumFontSize As Single = 8.0F
+    Public Const MaximumFontSize As Single = 12.0F
 
     Private Shared ReadOnly Themes As IReadOnlyList(Of AppTheme) =
         CreateThemes()
+    Private Shared ReadOnly FontFamilyNames As IReadOnlyList(Of String) =
+        LoadFontFamilyNames()
     Private Shared _currentTheme As AppTheme
+    Private Shared _currentFontFamilyName As String
+    Private Shared _currentFontSize As Single
+    Private Shared _settingsLoaded As Boolean
 
     Private Sub New()
     End Sub
@@ -93,13 +104,30 @@ Public NotInheritable Class ThemeManager
         End Get
     End Property
 
+    Public Shared ReadOnly Property AvailableFontFamilies As IReadOnlyList(Of String)
+        Get
+            Return FontFamilyNames
+        End Get
+    End Property
+
     Public Shared ReadOnly Property CurrentTheme As AppTheme
         Get
-            If _currentTheme Is Nothing Then
-                Dim settings = AppSettingsRepository.Load()
-                _currentTheme = FindTheme(settings.ThemeKey)
-            End If
+            EnsureSettingsLoaded()
             Return _currentTheme
+        End Get
+    End Property
+
+    Public Shared ReadOnly Property CurrentFontFamilyName As String
+        Get
+            EnsureSettingsLoaded()
+            Return _currentFontFamilyName
+        End Get
+    End Property
+
+    Public Shared ReadOnly Property CurrentFontSize As Single
+        Get
+            EnsureSettingsLoaded()
+            Return _currentFontSize
         End Get
     End Property
 
@@ -122,15 +150,53 @@ Public NotInheritable Class ThemeManager
     End Function
 
     Public Shared Sub SelectTheme(key As String, persist As Boolean)
+        EnsureSettingsLoaded()
         _currentTheme = FindTheme(key)
-        If persist Then
-            AppSettingsRepository.Save(
-                New DietPlannerSettings With {
-                    .ThemeKey = _currentTheme.Key
-                }
-            )
-        End If
+        If persist Then SavePreferences()
     End Sub
+
+    Public Shared Sub SelectFont(
+        fontFamilyName As String,
+        fontSize As Single,
+        persist As Boolean
+    )
+        EnsureSettingsLoaded()
+        _currentFontFamilyName = ResolveFontFamilyName(fontFamilyName)
+        _currentFontSize = NormalizeFontSize(fontSize)
+        If persist Then SavePreferences()
+    End Sub
+
+    Public Shared Sub SavePreferences()
+        EnsureSettingsLoaded()
+        AppSettingsRepository.Save(
+            New DietPlannerSettings With {
+                .ThemeKey = _currentTheme.Key,
+                .FontFamilyName = _currentFontFamilyName,
+                .FontSize = _currentFontSize
+            }
+        )
+    End Sub
+
+    Public Shared Function CreateApplicationFont(
+        Optional style As FontStyle = FontStyle.Regular
+    ) As Font
+        EnsureSettingsLoaded()
+        Try
+            Return New Font(
+                _currentFontFamilyName,
+                _currentFontSize,
+                style,
+                GraphicsUnit.Point
+            )
+        Catch
+            Return New Font(
+                SystemFonts.MessageBoxFont.FontFamily,
+                _currentFontSize,
+                style,
+                GraphicsUnit.Point
+            )
+        End Try
+    End Function
 
     Public Shared Sub ApplyToOpenForms()
         Dim openForms = Application.OpenForms.Cast(Of Form)().ToList()
@@ -143,10 +209,256 @@ Public NotInheritable Class ThemeManager
     Public Shared Sub ApplyTheme(form As Form)
         If form Is Nothing Then Return
         Dim theme = CurrentTheme
+        ApplyApplicationFont(form)
         form.BackColor = theme.WindowBackColor
         form.ForeColor = theme.TextColor
         ApplyControlTheme(form, theme)
+        ApplyTitleBarTheme(form, theme)
     End Sub
+
+    Private Shared Sub ApplyTitleBarTheme(form As Form, theme As AppTheme)
+        RemoveHandler form.HandleCreated, AddressOf Form_HandleCreated
+        AddHandler form.HandleCreated, AddressOf Form_HandleCreated
+        If form.IsHandleCreated Then ApplyNativeTitleBar(form, theme)
+    End Sub
+
+    Private Shared Sub Form_HandleCreated(sender As Object, e As EventArgs)
+        Dim form = TryCast(sender, Form)
+        If form Is Nothing Then Return
+        ApplyNativeTitleBar(form, CurrentTheme)
+    End Sub
+
+    Private Shared Sub ApplyNativeTitleBar(form As Form, theme As AppTheme)
+        Try
+            Dim darkMode = If(IsDarkColor(theme.WindowBackColor), 1, 0)
+            If DwmSetWindowAttribute(
+                form.Handle,
+                20,
+                darkMode,
+                Marshal.SizeOf(Of Integer)()
+            ) <> 0 Then
+                DwmSetWindowAttribute(
+                    form.Handle,
+                    19,
+                    darkMode,
+                    Marshal.SizeOf(Of Integer)()
+                )
+            End If
+
+            Dim captionBackColor = If(
+                darkMode = 1,
+                theme.SurfaceBackColor,
+                theme.AccentColor
+            )
+            Dim captionTextColor = If(
+                darkMode = 1,
+                theme.TextColor,
+                theme.AccentTextColor
+            )
+            Dim captionColorValue = ColorTranslator.ToWin32(captionBackColor)
+            Dim textColorValue = ColorTranslator.ToWin32(captionTextColor)
+            Dim borderColorValue = ColorTranslator.ToWin32(theme.BorderColor)
+
+            DwmSetWindowAttribute(
+                form.Handle,
+                35,
+                captionColorValue,
+                Marshal.SizeOf(Of Integer)()
+            )
+            DwmSetWindowAttribute(
+                form.Handle,
+                36,
+                textColorValue,
+                Marshal.SizeOf(Of Integer)()
+            )
+            DwmSetWindowAttribute(
+                form.Handle,
+                34,
+                borderColorValue,
+                Marshal.SizeOf(Of Integer)()
+            )
+        Catch ex As DllNotFoundException
+        Catch ex As EntryPointNotFoundException
+        End Try
+    End Sub
+
+    Private Shared Function IsDarkColor(color As Color) As Boolean
+        Dim luminance =
+            color.R * 0.2126 +
+            color.G * 0.7152 +
+            color.B * 0.0722
+        Return luminance < 128
+    End Function
+
+    <DllImport("dwmapi.dll")>
+    Private Shared Function DwmSetWindowAttribute(
+        windowHandle As IntPtr,
+        attribute As Integer,
+        ByRef attributeValue As Integer,
+        attributeSize As Integer
+    ) As Integer
+    End Function
+
+    Private Shared Sub ApplyApplicationFont(form As Form)
+        Dim previousFont = form.Font
+        Dim applicationFont = CreateApplicationFont(previousFont.Style)
+        Dim changed =
+            Not String.Equals(
+                previousFont.FontFamily.Name,
+                applicationFont.FontFamily.Name,
+                StringComparison.OrdinalIgnoreCase
+            ) OrElse Math.Abs(previousFont.SizeInPoints - applicationFont.SizeInPoints) > 0.05
+
+        If Not changed Then
+            applicationFont.Dispose()
+            Return
+        End If
+
+        form.Font = applicationFont
+        UpdateExplicitControlFonts(
+            form,
+            previousFont,
+            applicationFont.FontFamily.Name,
+            applicationFont.SizeInPoints
+        )
+    End Sub
+
+    Private Shared Sub UpdateExplicitControlFonts(
+        parent As Control,
+        previousBaseFont As Font,
+        newFamilyName As String,
+        newBaseSize As Single
+    )
+        For Each child As Control In parent.Controls
+            Dim childFont = child.Font
+            Dim stillUsesPreviousBase =
+                String.Equals(
+                    childFont.FontFamily.Name,
+                    previousBaseFont.FontFamily.Name,
+                    StringComparison.OrdinalIgnoreCase
+                ) AndAlso
+                Math.Abs(
+                    childFont.SizeInPoints - previousBaseFont.SizeInPoints
+                ) <= 0.05
+            Dim usesOldFamily = Not String.Equals(
+                childFont.FontFamily.Name,
+                newFamilyName,
+                StringComparison.OrdinalIgnoreCase
+            )
+
+            If stillUsesPreviousBase OrElse usesOldFamily Then
+                Try
+                    child.Font = New Font(
+                        newFamilyName,
+                        newBaseSize,
+                        childFont.Style,
+                        GraphicsUnit.Point
+                    )
+                Catch
+                    child.Font = New Font(
+                        SystemFonts.MessageBoxFont.FontFamily,
+                        newBaseSize,
+                        childFont.Style,
+                        GraphicsUnit.Point
+                    )
+                End Try
+            End If
+
+            UpdateExplicitControlFonts(
+                child,
+                previousBaseFont,
+                newFamilyName,
+                newBaseSize
+            )
+        Next
+    End Sub
+
+    Private Shared Sub EnsureSettingsLoaded()
+        If _settingsLoaded Then Return
+
+        Dim settings = AppSettingsRepository.Load()
+        _currentTheme = FindTheme(settings.ThemeKey)
+        _currentFontFamilyName = ResolveFontFamilyName(
+            settings.FontFamilyName
+        )
+        _currentFontSize = NormalizeFontSize(settings.FontSize)
+        _settingsLoaded = True
+    End Sub
+
+    Private Shared Function ResolveFontFamilyName(
+        requestedName As String
+    ) As String
+        For Each candidate In {
+            requestedName,
+            DefaultFontFamilyName,
+            "Segoe UI",
+            SystemFonts.MessageBoxFont.FontFamily.Name
+        }
+            If String.IsNullOrWhiteSpace(candidate) Then Continue For
+            Dim match = FontFamilyNames.FirstOrDefault(
+                Function(fontName) String.Equals(
+                    fontName,
+                    candidate,
+                    StringComparison.CurrentCultureIgnoreCase
+                )
+            )
+            If match IsNot Nothing Then Return match
+        Next
+
+        Return SystemFonts.MessageBoxFont.FontFamily.Name
+    End Function
+
+    Private Shared Function NormalizeFontSize(fontSize As Single) As Single
+        If fontSize <= 0 OrElse
+            Single.IsNaN(fontSize) OrElse
+            Single.IsInfinity(fontSize) Then
+            Return DefaultFontSize
+        End If
+        Return Math.Max(
+            MinimumFontSize,
+            Math.Min(MaximumFontSize, fontSize)
+        )
+    End Function
+
+    Private Shared Function LoadFontFamilyNames() As IReadOnlyList(Of String)
+        Dim names As New List(Of String)
+        Try
+            Using installedFonts As New InstalledFontCollection()
+                For Each family In installedFonts.Families
+                    If family.Name.StartsWith(
+                        "@",
+                        StringComparison.Ordinal
+                    ) Then
+                        Continue For
+                    End If
+                    If family.IsStyleAvailable(FontStyle.Regular) AndAlso
+                        family.IsStyleAvailable(FontStyle.Bold) Then
+                        Using sample As New Font(
+                            family,
+                            DefaultFontSize,
+                            FontStyle.Regular,
+                            GraphicsUnit.Point
+                        )
+                            If sample.GdiCharSet <> 2 Then
+                                names.Add(family.Name)
+                            End If
+                        End Using
+                    End If
+                Next
+            End Using
+        Catch
+        End Try
+
+        If names.Count = 0 Then
+            names.Add(SystemFonts.MessageBoxFont.FontFamily.Name)
+        End If
+        Return names.Distinct(
+            StringComparer.CurrentCultureIgnoreCase
+        ).OrderBy(
+            Function(name) name,
+            StringComparer.CurrentCultureIgnoreCase
+        ).ToList()
+    End Function
 
     Private Shared Sub ApplyControlTheme(control As Control, theme As AppTheme)
         If String.Equals(
