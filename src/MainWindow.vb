@@ -1,7 +1,4 @@
-﻿Imports Newtonsoft.Json
-Imports System.IO
-
-Public Class MainWindow
+﻿Public Class MainWindow
     Private Const EmptySelectionText As String = "Select an option..."
     Private Shared ReadOnly SlotMealTypes As String() = {
         "Breakfast",
@@ -23,31 +20,51 @@ Public Class MainWindow
     End Sub
 
     Private Async Function LoadDataAsync() As Task
-        Dim meals = LoadMeals()
+        Dim meals = MealRepository.LoadAll()
 
         If meals.Any(Function(meal) meal.NeedsAdvancedScrape()) Then
             Dim loader As New Loading("Adding ingredients and directions to existing recipes...")
             loader.Show(Me)
             Try
                 Dim migration = Await MigrateAdvancedDetailsAsync(meals, loader)
-                If migration.ChangedCount > 0 Then SaveMeals(meals)
+                If migration.ChangedCount > 0 Then MealRepository.SaveAll(meals)
                 ShowAdvancedMigrationResult(migration)
             Finally
                 loader.Close()
             End Try
         End If
 
-        If meals.Any(
+        Dim needsCategoryUpgrade =
+            MealRepository.LoadCategoryVersion() < MealRepository.CurrentCategoryVersion
+        Dim hasUncategorizedMeals = meals.Any(
             Function(meal) meal.MealTypes Is Nothing OrElse meal.MealTypes.Count = 0
-        ) Then
-            Dim loader As New Loading("Categorizing existing recipes...")
+        )
+        If needsCategoryUpgrade AndAlso meals.Count = 0 Then
+            MealRepository.SaveCurrentCategoryVersion()
+        ElseIf needsCategoryUpgrade OrElse hasUncategorizedMeals Then
+            Dim loaderMessage = If(
+                needsCategoryUpgrade,
+                "Updating recipe meal categories...",
+                "Categorizing existing recipes..."
+            )
+            Dim loader As New Loading(loaderMessage)
             loader.Show(Me)
             Try
-                Dim updatedCount = Await API.CategorizeUncategorizedMealsAsync(meals)
-                If updatedCount > 0 Then SaveMeals(meals)
+                Dim updatedCount As Integer
+                If needsCategoryUpgrade Then
+                    updatedCount = Await API.RecategorizeMealsAsync(meals)
+                    If updatedCount > 0 Then MealRepository.SaveAll(meals)
+                    MealRepository.SaveCurrentCategoryVersion()
+                Else
+                    updatedCount = Await API.CategorizeUncategorizedMealsAsync(meals)
+                    If updatedCount > 0 Then MealRepository.SaveAll(meals)
+                End If
             Catch ex As Exception
+                MealRepository.SaveAll(meals)
                 MessageBox.Show(
-                    "Existing recipes were loaded, but DietPlanner could not categorize all of them." &
+                    "Existing recipes were loaded, but DietPlanner could not update all of their categories. " &
+                    "Breakfast recipes were still made available for Brunch, and the broader category update " &
+                    "will be retried next time." &
                     Environment.NewLine & Environment.NewLine & ex.Message,
                     "DietPlanner",
                     MessageBoxButtons.OK,
@@ -119,23 +136,6 @@ Public Class MainWindow
             "Recipe detail migration",
             MessageBoxButtons.OK,
             MessageBoxIcon.Warning
-        )
-    End Sub
-
-    Private Function LoadMeals() As List(Of Meal)
-        If Not File.Exists("./data/meals.json") Then Return New List(Of Meal)
-
-        Dim json = File.ReadAllText("./data/meals.json")
-        Dim meals = JsonConvert.DeserializeObject(Of List(Of Meal))(json)
-        If meals Is Nothing Then meals = New List(Of Meal)
-        Return meals.OrderBy(Function(meal) meal.Name).ToList()
-    End Function
-
-    Private Sub SaveMeals(meals As List(Of Meal))
-        If Not Directory.Exists("./data") Then Directory.CreateDirectory("./data")
-        File.WriteAllText(
-            "./data/meals.json",
-            JsonConvert.SerializeObject(meals, Formatting.Indented)
         )
     End Sub
 
@@ -264,6 +264,34 @@ Public Class MainWindow
         Dim addMeal As New AddRecipe()
         AddHandler addMeal.FormClosed, AddressOf AddMeal_FormClosed
         addMeal.Show()
+    End Sub
+
+    Private Async Sub ViewAllRecipesButton_Click(
+        sender As Object,
+        e As EventArgs
+    ) Handles ViewAllRecipesButton.Click
+        Using catalog As New RecipeCatalog()
+            If catalog.ShowDialog(Me) <> DialogResult.OK Then Return
+        End Using
+
+        Try
+            Await LoadDataAsync()
+        Catch ex As Exception
+            MessageBox.Show(
+                "The categories were saved, but DietPlanner could not refresh the main window." &
+                Environment.NewLine & Environment.NewLine &
+                ex.Message,
+                "DietPlanner",
+                MessageBoxButtons.OK,
+                MessageBoxIcon.Warning
+            )
+        End Try
+    End Sub
+
+    Private Sub PlanWeekButton_Click(sender As Object, e As EventArgs) Handles PlanWeekButton.Click
+        Using planner As New WeekPlanner()
+            planner.ShowDialog(Me)
+        End Using
     End Sub
 
     Private Async Sub AddMeal_FormClosed(sender As Object, e As FormClosedEventArgs)

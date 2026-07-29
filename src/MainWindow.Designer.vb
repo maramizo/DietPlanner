@@ -52,6 +52,8 @@ Partial Class MainWindow
         ViewRecipe3 = New Button()
         ViewRecipe5 = New Button()
         ClearAllButton = New Button()
+        PlanWeekButton = New Button()
+        ViewAllRecipesButton = New Button()
         SuspendLayout()
         '
         ' ComboBox1
@@ -329,11 +331,31 @@ Partial Class MainWindow
         ClearAllButton.Text = "Clear All"
         ClearAllButton.UseVisualStyleBackColor = True
         '
+        ' PlanWeekButton
+        '
+        PlanWeekButton.Location = New Point(263, 225)
+        PlanWeekButton.Name = "PlanWeekButton"
+        PlanWeekButton.Size = New Size(161, 23)
+        PlanWeekButton.TabIndex = 35
+        PlanWeekButton.Text = "Plan My Week"
+        PlanWeekButton.UseVisualStyleBackColor = True
+        '
+        ' ViewAllRecipesButton
+        '
+        ViewAllRecipesButton.Location = New Point(445, 225)
+        ViewAllRecipesButton.Name = "ViewAllRecipesButton"
+        ViewAllRecipesButton.Size = New Size(166, 23)
+        ViewAllRecipesButton.TabIndex = 36
+        ViewAllRecipesButton.Text = "View All Recipes"
+        ViewAllRecipesButton.UseVisualStyleBackColor = True
+        '
         ' MainWindow
         '
         AutoScaleDimensions = New SizeF(7F, 15F)
         AutoScaleMode = AutoScaleMode.Font
-        ClientSize = New Size(620, 231)
+        ClientSize = New Size(620, 263)
+        Controls.Add(ViewAllRecipesButton)
+        Controls.Add(PlanWeekButton)
         Controls.Add(ClearAllButton)
         Controls.Add(ViewRecipe5)
         Controls.Add(ViewRecipe4)
@@ -401,5 +423,7 @@ Partial Class MainWindow
     Friend WithEvents ViewRecipe3 As Button
     Friend WithEvents ViewRecipe5 As Button
     Friend WithEvents ClearAllButton As Button
+    Friend WithEvents PlanWeekButton As Button
+    Friend WithEvents ViewAllRecipesButton As Button
 
 End Class

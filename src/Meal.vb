@@ -96,9 +96,19 @@
     Private Shared Function NormalizeMealTypes(mealTypes As IEnumerable(Of String)) As List(Of String)
         Dim normalized As New List(Of String)
         If mealTypes Is Nothing Then Return normalized
+        Dim includesBreakfast = mealTypes.Any(
+            Function(value) String.Equals(
+                value,
+                "Breakfast",
+                StringComparison.OrdinalIgnoreCase
+            )
+        )
 
         For Each optionName In MealTypeOrder
-            If mealTypes.Any(
+            If (
+                String.Equals(optionName, "Brunch", StringComparison.Ordinal) AndAlso
+                includesBreakfast
+            ) OrElse mealTypes.Any(
                 Function(value) String.Equals(value, optionName, StringComparison.OrdinalIgnoreCase)
             ) Then
                 normalized.Add(optionName)

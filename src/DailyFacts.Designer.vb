@@ -140,7 +140,8 @@ Partial Class DailyFacts
         Controls.Add(Label2)
         Controls.Add(Label1)
         Name = "DailyFacts"
-        Text = "DailyFacts"
+        StartPosition = FormStartPosition.CenterParent
+        Text = "Daily Facts"
         CType(NutritionalsDataGrid, ComponentModel.ISupportInitialize).EndInit()
         ResumeLayout(False)
         PerformLayout()

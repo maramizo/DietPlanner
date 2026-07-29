@@ -1,4 +1,7 @@
-﻿Public Class Nutrition
+﻿Imports System.Globalization
+Imports System.Text.RegularExpressions
+
+Public Class Nutrition
     Public Property Name As String
     Public Property Amount As Double
 
@@ -17,7 +20,7 @@
         Me.Amount = amount
     End Sub
 
-    Public Function FormattedAmount()
+    Public Function FormattedAmount() As String
         If gNutritionals.Contains(Name) Then
             Return Amount & " g"
         ElseIf mgNutritionals.Contains(Name) Then
@@ -25,5 +28,27 @@
         Else
             Return Amount.ToString()
         End If
+    End Function
+
+    Public Shared Function TryParseAmount(value As Object, ByRef amount As Double) As Boolean
+        amount = 0
+        If value Is Nothing OrElse value Is DBNull.Value Then Return False
+
+        Dim text = Convert.ToString(value).Trim()
+        If text = String.Empty Then Return False
+
+        text = Regex.Replace(
+            text,
+            "\s*(?:mg|g)\s*$",
+            String.Empty,
+            RegexOptions.IgnoreCase
+        ).Trim()
+
+        Dim styles = NumberStyles.Float Or NumberStyles.AllowThousands
+        If Double.TryParse(text, styles, CultureInfo.CurrentCulture, amount) Then
+            Return True
+        End If
+
+        Return Double.TryParse(text, styles, CultureInfo.InvariantCulture, amount)
     End Function
 End Class

@@ -76,7 +76,8 @@ Partial Class RecommendedIntake
         Controls.Add(Save)
         Controls.Add(RecommendedGridView)
         Name = "RecommendedIntake"
-        Text = "RecommendedIntake"
+        StartPosition = FormStartPosition.CenterParent
+        Text = "Recommended Intake"
         CType(RecommendedGridView, ComponentModel.ISupportInitialize).EndInit()
         ResumeLayout(False)
     End Sub

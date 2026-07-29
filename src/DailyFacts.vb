@@ -1,20 +1,22 @@
 ﻿Public Class DailyFacts
 
-    Private Class DisplayedRow
-        Public Property Nutritional As String
-        Public Property Amount As String
-        Public Property RecommendedAmount As String
-    End Class
+    Private ReadOnly _meals As List(Of Meal)
 
     Public Sub New(meals As List(Of Meal))
         InitializeComponent()
         ApplyAppIcon(Me)
+        _meals = If(meals, New List(Of Meal)).ToList()
+        RefreshFacts()
+    End Sub
+
+    Private Sub RefreshFacts()
+        NutritionalsDataGrid.Rows.Clear()
         Dim totalCalories As Integer = 0
         Dim totalCookTime As Integer = 0
         Dim totals As New Dictionary(Of String, Double)
         Dim nutrientInfo As New NutrientInfo()
 
-        For Each meal As Meal In meals
+        For Each meal As Meal In _meals
             totalCookTime += meal.TotalTime
             totalCalories += meal.Calory
             For Each unparsedNutritional As KeyValuePair(Of String, Double) In meal.Nutritionals
@@ -36,8 +38,12 @@
             Catch ex As KeyNotFoundException
                 recommendedAmount = Math.Max(nutritional.Amount, 1)
             End Try
-            Dim displayedNutritional As New DisplayedRow
-            Dim pctRecommended As Double = nutritional.Amount / recommendedAmount * 100
+            Dim pctRecommended As Double = 0
+            If recommendedAmount > 0 Then
+                pctRecommended = nutritional.Amount / recommendedAmount * 100
+            Else
+                found = False
+            End If
             If Not found Then
                 Dim formattedRecommendedAmount = "—"
                 NutritionalsDataGrid.Rows.Add(nutritional.Name, nutritional.FormattedAmount, "—", formattedRecommendedAmount)
@@ -66,6 +72,8 @@
 
     Private Sub ChangeButton_Click(sender As Object, e As EventArgs) Handles ChangeButton.Click
         Dim changeIntakes = New RecommendedIntake()
-        changeIntakes.ShowDialog()
+        If changeIntakes.ShowDialog(Me) = DialogResult.OK Then
+            RefreshFacts()
+        End If
     End Sub
 End Class

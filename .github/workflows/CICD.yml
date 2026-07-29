@@ -52,7 +52,8 @@ jobs:
             -p:Version=$version `
             -p:AssemblyVersion="${version}.0" `
             -p:FileVersion="${version}.0" `
-            -p:InformationalVersion="${version}+$env:GITHUB_SHA"
+            -p:InformationalVersion="${version}+$env:GITHUB_SHA" `
+            -p:IncludeSourceRevisionInInformationalVersion=false
 
       - name: Package and checksum
         shell: pwsh

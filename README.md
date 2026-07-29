@@ -17,6 +17,22 @@ failures remain `Pending` so they can be retried later.
 Scraped directions arrive as ordered Preparation and Cooking step arrays.
 DietPlanner formats the headings, numbering, punctuation, and line breaks locally.
 
+The main window can plan a complete Monday-through-Sunday week from a user-selected
+recipe pool. Every selected recipe appears at least once, all five meal-type slots
+are filled each day, and a deterministic optimizer balances the saved recommended
+daily nutrient targets across the full week while penalizing large day-to-day
+calorie or nutrient variance. The generated plan and its target snapshot are saved
+in `data/week-plan.json`.
+
+`View All Recipes` provides an editable category matrix for the full recipe
+catalog. Breakfast always implies Brunch. A one-time category migration also asks
+Codex to apply Brunch more broadly to suitable Lunch and Snack recipes, after
+which manual category edits remain authoritative.
+
+Daily Facts refreshes in place after recommended-intake changes. Nutrient units
+remain display formatting, so saving a selected or actively edited `g`/`mg` cell
+continues to persist its numeric value correctly.
+
 The app runs `gpt-5.6-luna` with low reasoning in Fast mode. Codex CLI is the local
 Windows client, while model inference still uses OpenAI's hosted service. On the
 first Codex-backed action, DietPlanner:

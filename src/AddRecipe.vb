@@ -1,7 +1,4 @@
-﻿Imports Newtonsoft.Json
-Imports System.IO
-
-Public Class AddRecipe
+﻿Public Class AddRecipe
 
     Public Sub New()
         InitializeComponent()
@@ -15,19 +12,32 @@ Public Class AddRecipe
     End Sub
 
     Private Sub DataGridView_CellFormatting(sender As Object, e As DataGridViewCellFormattingEventArgs) Handles NutritionalsDataGrid.CellFormatting
-        If e.RowIndex >= 0 AndAlso e.ColumnIndex = 1 Then ' Assuming column 1 contains the nutrient amount
-            ' Check if the value is numeric (e.g., 31.0 or 31)
-            If IsNumeric(e.Value) Then
+        If e.RowIndex >= 0 AndAlso e.ColumnIndex = 1 Then
+            Dim amount As Double
+            If Global.DietPlanner.Nutrition.TryParseAmount(e.Value, amount) Then
                 Dim nutrient = NutritionalsDataGrid.Rows(e.RowIndex).Cells(0).Value.ToString()
-                Dim nutrition = New Nutrition(nutrient, e.Value)
+                Dim nutrition = New Nutrition(nutrient, amount)
                 e.Value = nutrition.FormattedAmount
-                Console.WriteLine(e.Value, nutrition.FormattedAmount, NutritionalsDataGrid.Rows(e.RowIndex).Cells(0))
+                e.FormattingApplied = True
             End If
         End If
     End Sub
 
+    Private Sub NutritionalsDataGrid_CellParsing(
+        sender As Object,
+        e As DataGridViewCellParsingEventArgs
+    ) Handles NutritionalsDataGrid.CellParsing
+        If e.RowIndex < 0 OrElse e.ColumnIndex <> 1 Then Return
+
+        Dim amount As Double
+        If Global.DietPlanner.Nutrition.TryParseAmount(e.Value, amount) Then
+            e.Value = amount
+            e.ParsingApplied = True
+        End If
+    End Sub
 
     Private Sub SaveButton_Click(sender As Object, e As EventArgs) Handles SaveButton.Click
+        NutritionalsDataGrid.EndEdit()
         Dim nutritionals As New Dictionary(Of String, Double)
 
         'Check that all data is entered
@@ -44,10 +54,14 @@ Public Class AddRecipe
                     Return
                 End If
                 Dim value As Double
-                If row.Cells(1).Value Is Nothing Or row.Cells(1).Value = "" Then
+                If row.Cells(1).Value Is Nothing OrElse
+                    String.IsNullOrWhiteSpace(Convert.ToString(row.Cells(1).Value)) Then
                     value = 0
                 Else
-                    If Not Double.TryParse(row.Cells(1).Value, value) Then
+                    If Not Global.DietPlanner.Nutrition.TryParseAmount(
+                        row.Cells(1).Value,
+                        value
+                    ) Then
                         MessageBox.Show("Nutritional value must be a number")
                         Return
                     End If
@@ -91,20 +105,9 @@ Public Class AddRecipe
             ingredients,
             PreparationMethodTextBox.Text
         )
-        Dim json As String
-        If Directory.Exists("./data") And File.Exists("./data/meals.json") Then
-            json = File.ReadAllText("./data/meals.json")
-        Else
-            json = "[]"
-        End If
-        Dim meals As List(Of Meal) = JsonConvert.DeserializeObject(Of List(Of Meal))(json)
-        If meals Is Nothing Then meals = New List(Of Meal)
+        Dim meals = MealRepository.LoadAll()
         meals.Add(meal)
-        json = JsonConvert.SerializeObject(meals)
-        If Not Directory.Exists("./data") Then
-            Directory.CreateDirectory("./data")
-        End If
-        File.WriteAllText("./data/meals.json", json)
+        MealRepository.SaveAll(meals)
         Close()
     End Sub
 
