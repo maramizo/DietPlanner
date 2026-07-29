@@ -3,6 +3,7 @@
     Public Const AdvancedScrapeComplete As String = "Complete"
     Public Const AdvancedScrapeUnavailable As String = "Unavailable"
     Public Const CurrentAdvancedScrapeVersion As Integer = 1
+    Public Const CurrentIngredientDataVersion As Integer = 1
 
     Private Shared ReadOnly MealTypeOrder As String() = {
         "Breakfast",
@@ -27,6 +28,7 @@
     Public Property AdvancedScrapeStatus As String
     Public Property AdvancedScrapeNote As String
     Public Property AdvancedScrapeVersion As Integer
+    Public Property IngredientDataVersion As Integer
 
     <Newtonsoft.Json.JsonConstructor>
     Public Sub New(
@@ -43,7 +45,8 @@
         Optional notes As String = Nothing,
         Optional advancedScrapeStatus As String = Nothing,
         Optional advancedScrapeNote As String = Nothing,
-        Optional advancedScrapeVersion As Integer = 0
+        Optional advancedScrapeVersion As Integer = 0,
+        Optional ingredientDataVersion As Integer = 0
     )
         Me.Name = name
         Me.Calory = calory
@@ -60,6 +63,7 @@
         Me.AdvancedScrapeStatus = NormalizeAdvancedScrapeStatus(advancedScrapeStatus)
         Me.AdvancedScrapeNote = If(advancedScrapeNote, String.Empty).Trim()
         Me.AdvancedScrapeVersion = Math.Max(0, advancedScrapeVersion)
+        Me.IngredientDataVersion = Math.Max(0, ingredientDataVersion)
     End Sub
 
     Public Sub SetMealTypes(mealTypes As IEnumerable(Of String))
@@ -100,6 +104,20 @@
         )
     End Function
 
+    Public Function NeedsIngredientNormalization() As Boolean
+        Return Ingredients IsNot Nothing AndAlso
+            Ingredients.Count > 0 AndAlso
+            (
+                IngredientDataVersion < CurrentIngredientDataVersion OrElse
+                Ingredients.Any(
+                    Function(ingredient)
+                        Return ingredient Is Nothing OrElse
+                            Not ingredient.HasStructuredMeasurement()
+                    End Function
+                )
+            )
+    End Function
+
     Public Sub ApplyAdvancedDetails(details As AdvancedRecipeDetails)
         If details Is Nothing Then Throw New ArgumentNullException(NameOf(details))
         If details.Servings < 1 Then
@@ -123,6 +141,30 @@
         AdvancedScrapeStatus = AdvancedScrapeComplete
         AdvancedScrapeNote = String.Empty
         AdvancedScrapeVersion = CurrentAdvancedScrapeVersion
+        IngredientDataVersion = CurrentIngredientDataVersion
+    End Sub
+
+    Public Sub ApplyNormalizedIngredients(
+        normalizedIngredients As IEnumerable(Of RecipeIngredient)
+    )
+        Dim normalized = NormalizeIngredients(normalizedIngredients)
+        If normalized.Count = 0 Then
+            Throw New ArgumentException(
+                "Ingredient normalization returned no ingredients.",
+                NameOf(normalizedIngredients)
+            )
+        End If
+        If normalized.Any(
+            Function(ingredient) Not ingredient.HasStructuredMeasurement()
+        ) Then
+            Throw New ArgumentException(
+                "Ingredient normalization returned an unsupported measurement.",
+                NameOf(normalizedIngredients)
+            )
+        End If
+
+        Ingredients = normalized
+        IngredientDataVersion = CurrentIngredientDataVersion
     End Sub
 
     Public Sub MarkAdvancedScrapeUnavailable(note As String)
@@ -166,7 +208,12 @@
                 Continue For
             End If
             normalized.Add(
-                New RecipeIngredient(ingredient.Ingredient, ingredient.Amount)
+                New RecipeIngredient(
+                    ingredient.Ingredient,
+                    ingredient.Amount,
+                    ingredient.Quantity,
+                    ingredient.Unit
+                )
             )
         Next
         Return normalized

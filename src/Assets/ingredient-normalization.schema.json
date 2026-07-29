@@ -1,17 +1,14 @@
 {
   "type": "object",
   "properties": {
-    "Calories": {
-      "type": "integer"
-    },
-    "Servings": {
-      "type": "integer"
-    },
     "Ingredients": {
       "type": "array",
       "items": {
         "type": "object",
         "properties": {
+          "Index": {
+            "type": "integer"
+          },
           "Ingredient": {
             "type": "string"
           },
@@ -49,45 +46,17 @@
           }
         },
         "required": [
+          "Index",
           "Ingredient",
           "Quantity",
           "Unit"
         ],
         "additionalProperties": false
       }
-    },
-    "PreparationMethod": {
-      "type": "object",
-      "properties": {
-        "Preparation": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          }
-        },
-        "Cooking": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          }
-        }
-      },
-      "required": [
-        "Preparation",
-        "Cooking"
-      ],
-      "additionalProperties": false
-    },
-    "Notes": {
-      "type": "string"
     }
   },
   "required": [
-    "Calories",
-    "Servings",
-    "Ingredients",
-    "PreparationMethod",
-    "Notes"
+    "Ingredients"
   ],
   "additionalProperties": false
 }

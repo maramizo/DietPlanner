@@ -5,6 +5,10 @@ Recipe pages are parsed locally and sent to Codex CLI for structured nutrition a
 meal-type extraction, including ingredient amounts, preparation directions, and
 focused notes for storage, freezing, reheating, make-ahead guidance, and recipe
 variations.
+Ingredients are stored as a normalized name, numeric quantity, and canonical unit
+rather than an opaque amount string. Existing free-form ingredient lists are
+normalized once on startup by independent parallel Codex runs that use the saved
+ingredient text and do not require the recipe URL.
 Serving count is stored with each recipe, and scraped calories and nutrients are
 normalized to a per-serving basis. View Details also calculates total batch
 calories from the stored serving count without persisting a redundant total.
@@ -16,8 +20,9 @@ are also enriched once from their saved source URL.
 
 Startup compatibility work fans out every recipe download and Codex extraction
 as an independent asynchronous task. Serving/calorie/ingredient/direction/note
-enrichment and meal-category migration run as separate flows at the same time,
-then save their results together after every task has completed.
+enrichment, stored-ingredient normalization, and meal-category migration run as
+separate flows at the same time, then save their results together after every
+task has completed.
 
 Every meal records its advanced-scrape status as `Pending`, `Complete`, or
 `Unavailable`. Clearly invalid, inaccessible, or incomplete recipe sources are
@@ -37,11 +42,15 @@ modes:
 The planner lets the user choose any subset of Breakfast, Brunch, Lunch, Dinner,
 and Snack; all five are selected by default for backwards compatibility. Only
 the chosen slots are generated and validated, so a Breakfast-and-Dinner plan has
-14 weekly slots rather than 35. Each click creates a fresh randomized shuffle,
-then balances the saved recommended daily nutrient targets across the week while
+14 weekly slots rather than 35. A holistic ingredient checklist is also selected
+by default; unchecking an ingredient excludes every recipe that requires it.
+The finished week includes a consolidated ingredient table, scaled to one serving
+for each planned slot. Each click creates a fresh randomized shuffle, then
+balances the saved recommended daily nutrient targets across the week while
 penalizing large day-to-day calorie or nutrient variance. The generated plan,
-selected meal types, mode, random seed, guaranteed recipes, and target snapshot
-are saved in `data/week-plan.json`.
+selected meal types, ingredient constraint, mode, random seed, guaranteed
+recipes, ingredient snapshots, and target snapshot are saved in
+`data/week-plan.json`.
 
 Settings includes four persistent themes with live preview: Fresh Sage, Coastal
 Blue, Berry Bloom, and Midnight Kitchen. It also provides an installed-font
@@ -49,6 +58,10 @@ selector and 8–12 pt sizing; the default is Segoe UI Variable Text at 10 pt wi
 an automatic Segoe UI fallback. Themes now extend into the native Windows title
 bar, including its caption, text, and border colors. These preferences are stored
 in `data/settings.json`, which is preserved during automatic updates.
+Ingredient amounts can be displayed in standardized source units, US customary
+units, or metric units. Unit conversion and weekly aggregation are deterministic
+local calculations; Codex only extracts and normalizes the source quantity and
+unit.
 
 ![DietPlanner theme concepts](docs/theme-concepts.png)
 

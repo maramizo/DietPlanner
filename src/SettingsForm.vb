@@ -7,11 +7,13 @@ Public Class SettingsForm
     Private ReadOnly _originalThemeKey As String
     Private ReadOnly _originalFontFamilyName As String
     Private ReadOnly _originalFontSize As Single
+    Private ReadOnly _originalMeasurementSystem As String
     Private ReadOnly _themeButtons As New Dictionary(Of String, RadioButton)(
         StringComparer.OrdinalIgnoreCase
     )
     Private ReadOnly _fontFamilyComboBox As New ComboBox()
     Private ReadOnly _fontSizeNumeric As New NumericUpDown()
+    Private ReadOnly _measurementSystemComboBox As New ComboBox()
     Private ReadOnly _descriptionLabel As New Label()
     Private ReadOnly _previewPanel As New Panel()
     Private ReadOnly _previewTitle As New Label()
@@ -23,6 +25,7 @@ Public Class SettingsForm
     Private _selectedThemeKey As String
     Private _selectedFontFamilyName As String
     Private _selectedFontSize As Single
+    Private _selectedMeasurementSystem As String
     Private _updatingTypographyControls As Boolean
     Private _saved As Boolean
 
@@ -30,12 +33,18 @@ Public Class SettingsForm
         _originalThemeKey = ThemeManager.CurrentTheme.Key
         _originalFontFamilyName = ThemeManager.CurrentFontFamilyName
         _originalFontSize = ThemeManager.CurrentFontSize
+        _originalMeasurementSystem =
+            IngredientMeasurementConverter.NormalizeSystem(
+                AppSettingsRepository.Load().IngredientMeasurementSystem
+            )
         _selectedThemeKey = _originalThemeKey
         _selectedFontFamilyName = _originalFontFamilyName
         _selectedFontSize = _originalFontSize
+        _selectedMeasurementSystem = _originalMeasurementSystem
         InitializeSettingsForm()
         ApplyAppIcon(Me)
         InitializeTypographyControls()
+        InitializeMeasurementControls()
         _themeButtons(_originalThemeKey).Checked = True
         PreviewTheme(ThemeManager.FindTheme(_originalThemeKey))
     End Sub
@@ -46,7 +55,7 @@ Public Class SettingsForm
         FormBorderStyle = FormBorderStyle.FixedDialog
         MaximizeBox = False
         MinimizeBox = False
-        ClientSize = New Size(780, 580)
+        ClientSize = New Size(780, 680)
 
         Dim heading As New Label With {
             .AutoSize = True,
@@ -94,8 +103,16 @@ Public Class SettingsForm
         }
         BuildTypographyControls(typographyGroup)
 
+        Dim measurementGroup As New GroupBox With {
+            .Location = New Point(20, 525),
+            .Name = "IngredientMeasurementGroup",
+            .Size = New Size(740, 78),
+            .Text = "Ingredient measurements"
+        }
+        BuildMeasurementControls(measurementGroup)
+
         Dim applyButton As New Button With {
-            .Location = New Point(585, 532),
+            .Location = New Point(585, 622),
             .Name = "ApplyThemeButton",
             .Size = New Size(82, 28),
             .Text = "Save"
@@ -104,7 +121,7 @@ Public Class SettingsForm
 
         Dim cancelButton As New Button With {
             .DialogResult = DialogResult.Cancel,
-            .Location = New Point(678, 532),
+            .Location = New Point(678, 622),
             .Name = "CancelThemeButton",
             .Size = New Size(82, 28),
             .Text = "Cancel"
@@ -119,10 +136,75 @@ Public Class SettingsForm
             optionsGroup,
             previewGroup,
             typographyGroup,
+            measurementGroup,
             applyButton,
             cancelButton
         })
         AddHandler FormClosing, AddressOf SettingsForm_FormClosing
+    End Sub
+
+    Private Sub BuildMeasurementControls(parent As Control)
+        Dim systemLabel As New Label With {
+            .AutoSize = True,
+            .Location = New Point(15, 34),
+            .Text = "Measurement system"
+        }
+
+        _measurementSystemComboBox.DropDownStyle =
+            ComboBoxStyle.DropDownList
+        _measurementSystemComboBox.Location = New Point(180, 29)
+        _measurementSystemComboBox.Name = "IngredientMeasurementSystemComboBox"
+        _measurementSystemComboBox.Size = New Size(235, 23)
+        AddHandler _measurementSystemComboBox.SelectedIndexChanged,
+            AddressOf MeasurementSystemSelectionChanged
+
+        Dim noteLabel As New Label With {
+            .AutoSize = True,
+            .Location = New Point(445, 34),
+            .Text = "Conversions are calculated locally."
+        }
+
+        parent.Controls.AddRange({
+            systemLabel,
+            _measurementSystemComboBox,
+            noteLabel
+        })
+    End Sub
+
+    Private Sub InitializeMeasurementControls()
+        _measurementSystemComboBox.Items.Clear()
+        _measurementSystemComboBox.Items.AddRange(
+            IngredientMeasurementConverter.MeasurementSystems.
+                Cast(Of Object)().
+                ToArray()
+        )
+        For index As Integer = 0 To _measurementSystemComboBox.Items.Count - 1
+            Dim optionValue = DirectCast(
+                _measurementSystemComboBox.Items(index),
+                IngredientMeasurementSystemOption
+            )
+            If String.Equals(
+                optionValue.Key,
+                _originalMeasurementSystem,
+                StringComparison.OrdinalIgnoreCase
+            ) Then
+                _measurementSystemComboBox.SelectedIndex = index
+                Exit For
+            End If
+        Next
+    End Sub
+
+    Private Sub MeasurementSystemSelectionChanged(
+        sender As Object,
+        e As EventArgs
+    )
+        Dim optionValue = TryCast(
+            _measurementSystemComboBox.SelectedItem,
+            IngredientMeasurementSystemOption
+        )
+        If optionValue IsNot Nothing Then
+            _selectedMeasurementSystem = optionValue.Key
+        End If
     End Sub
 
     Private Sub BuildTypographyControls(parent As Control)
@@ -267,12 +349,12 @@ Public Class SettingsForm
             _previewPanel.Controls.Add(row)
         Next
 
-        _previewPrimaryButton.Location = New Point(18, 236)
-        _previewPrimaryButton.Size = New Size(145, 34)
+        _previewPrimaryButton.Location = New Point(18, 230)
+        _previewPrimaryButton.Size = New Size(145, 44)
         _previewPrimaryButton.Text = "Generate / Shuffle"
 
-        _previewSecondaryButton.Location = New Point(175, 236)
-        _previewSecondaryButton.Size = New Size(145, 34)
+        _previewSecondaryButton.Location = New Point(175, 230)
+        _previewSecondaryButton.Size = New Size(145, 44)
         _previewSecondaryButton.Text = "View recipes"
 
         _previewPanel.Controls.AddRange({
@@ -382,6 +464,15 @@ Public Class SettingsForm
             False
         )
         ThemeManager.SavePreferences()
+        Dim settings = AppSettingsRepository.Load()
+        settings.IngredientMeasurementSystem =
+            IngredientMeasurementConverter.NormalizeSystem(
+                _selectedMeasurementSystem
+            )
+        AppSettingsRepository.Save(settings)
+        For Each recipeView In Application.OpenForms.OfType(Of RecipeView)()
+            recipeView.RefreshIngredientMeasurements()
+        Next
         ThemeManager.ApplyToOpenForms()
         _saved = True
         DialogResult = DialogResult.OK

@@ -45,7 +45,8 @@ Partial Class AddRecipe
         IngredientsLabel = New Label()
         IngredientsDataGrid = New DataGridView()
         IngredientNameColumn = New DataGridViewTextBoxColumn()
-        IngredientAmountColumn = New DataGridViewTextBoxColumn()
+        IngredientQuantityColumn = New DataGridViewTextBoxColumn()
+        IngredientUnitColumn = New DataGridViewTextBoxColumn()
         PreparationMethodLabel = New Label()
         PreparationMethodTextBox = New TextBox()
         NotesLabel = New Label()
@@ -233,7 +234,11 @@ Partial Class AddRecipe
         IngredientsDataGrid.Anchor = AnchorStyles.Top Or AnchorStyles.Left Or AnchorStyles.Right
         IngredientsDataGrid.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill
         IngredientsDataGrid.ColumnHeadersHeightSizeMode = DataGridViewColumnHeadersHeightSizeMode.AutoSize
-        IngredientsDataGrid.Columns.AddRange(New DataGridViewColumn() {IngredientNameColumn, IngredientAmountColumn})
+        IngredientsDataGrid.Columns.AddRange(New DataGridViewColumn() {
+            IngredientNameColumn,
+            IngredientQuantityColumn,
+            IngredientUnitColumn
+        })
         IngredientsDataGrid.Location = New Point(390, 45)
         IngredientsDataGrid.Name = "IngredientsDataGrid"
         IngredientsDataGrid.Size = New Size(430, 180)
@@ -241,15 +246,21 @@ Partial Class AddRecipe
         '
         ' IngredientNameColumn
         '
-        IngredientNameColumn.FillWeight = 70.0!
+        IngredientNameColumn.FillWeight = 58.0!
         IngredientNameColumn.HeaderText = "Ingredient"
         IngredientNameColumn.Name = "IngredientNameColumn"
         '
-        ' IngredientAmountColumn
+        ' IngredientQuantityColumn
         '
-        IngredientAmountColumn.FillWeight = 30.0!
-        IngredientAmountColumn.HeaderText = "Amount"
-        IngredientAmountColumn.Name = "IngredientAmountColumn"
+        IngredientQuantityColumn.FillWeight = 18.0!
+        IngredientQuantityColumn.HeaderText = "Quantity"
+        IngredientQuantityColumn.Name = "IngredientQuantityColumn"
+        '
+        ' IngredientUnitColumn
+        '
+        IngredientUnitColumn.FillWeight = 24.0!
+        IngredientUnitColumn.HeaderText = "Unit"
+        IngredientUnitColumn.Name = "IngredientUnitColumn"
         '
         ' PreparationMethodLabel
         '
@@ -353,7 +364,8 @@ Partial Class AddRecipe
     Friend WithEvents IngredientsLabel As Label
     Friend WithEvents IngredientsDataGrid As DataGridView
     Friend WithEvents IngredientNameColumn As DataGridViewTextBoxColumn
-    Friend WithEvents IngredientAmountColumn As DataGridViewTextBoxColumn
+    Friend WithEvents IngredientQuantityColumn As DataGridViewTextBoxColumn
+    Friend WithEvents IngredientUnitColumn As DataGridViewTextBoxColumn
     Friend WithEvents PreparationMethodLabel As Label
     Friend WithEvents PreparationMethodTextBox As TextBox
     Friend WithEvents NotesLabel As Label

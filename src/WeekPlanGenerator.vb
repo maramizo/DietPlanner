@@ -791,6 +791,15 @@ Public NotInheritable Class WeekPlanGenerator
                         .MealName = meal.Name,
                         .RecipeUrl = meal.Recipe,
                         .Calories = meal.Calory,
+                        .RecipeServings = Math.Max(1, meal.Servings),
+                        .Ingredients = If(
+                            meal.Ingredients,
+                            New List(Of RecipeIngredient)
+                        ).Where(
+                            Function(ingredient) ingredient IsNot Nothing
+                        ).Select(
+                            Function(ingredient) ingredient.Clone()
+                        ).ToList(),
                         .Nutritionals = New Dictionary(Of String, Double)(
                             If(
                                 meal.Nutritionals,

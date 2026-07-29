@@ -100,13 +100,51 @@
             If row.IsNewRow Then Continue For
 
             Dim ingredientName = Convert.ToString(row.Cells(0).Value).Trim()
-            Dim amount = Convert.ToString(row.Cells(1).Value).Trim()
-            If ingredientName = "" AndAlso amount = "" Then Continue For
+            Dim quantityText = Convert.ToString(row.Cells(1).Value).Trim()
+            Dim unitText = Convert.ToString(row.Cells(2).Value).Trim()
+            If ingredientName = "" AndAlso
+                quantityText = "" AndAlso
+                unitText = "" Then
+                Continue For
+            End If
             If ingredientName = "" Then
-                MessageBox.Show("Each ingredient amount needs an ingredient name.")
+                MessageBox.Show("Each ingredient measurement needs an ingredient name.")
                 Return
             End If
-            ingredients.Add(New RecipeIngredient(ingredientName, amount))
+
+            Dim quantity As Double = 0
+            If quantityText <> "" AndAlso
+                Not IngredientMeasurementConverter.TryParseQuantity(
+                    quantityText,
+                    quantity
+                ) Then
+                MessageBox.Show(
+                    "Ingredient quantities must be non-negative numbers."
+                )
+                Return
+            End If
+
+            Dim unit = IngredientMeasurementConverter.NormalizeUnit(unitText)
+            If unitText <> "" AndAlso unit = "" Then
+                MessageBox.Show(
+                    "'" &
+                    unitText &
+                    "' is not a supported ingredient unit." &
+                    Environment.NewLine &
+                    "Use a standard unit such as cup, tablespoon, gram, ounce, piece, or to taste."
+                )
+                Return
+            End If
+            If unit = "" Then
+                unit = If(quantity > 0, "piece", "none")
+            End If
+            ingredients.Add(
+                New RecipeIngredient(
+                    ingredientName,
+                    quantity:=quantity,
+                    unit:=unit
+                )
+            )
         Next
 
         'Store meal
@@ -122,7 +160,8 @@
             ingredients,
             PreparationMethodTextBox.Text,
             NotesTextBox.Text,
-            advancedScrapeVersion:=Meal.CurrentAdvancedScrapeVersion
+            advancedScrapeVersion:=Meal.CurrentAdvancedScrapeVersion,
+            ingredientDataVersion:=Meal.CurrentIngredientDataVersion
         )
         Dim meals = MealRepository.LoadAll()
         meals.Add(meal)
@@ -169,7 +208,17 @@
 
             IngredientsDataGrid.Rows.Clear()
             For Each ingredient In meal.Ingredients
-                IngredientsDataGrid.Rows.Add(ingredient.Ingredient, ingredient.Amount)
+                IngredientsDataGrid.Rows.Add(
+                    ingredient.Ingredient,
+                    If(
+                        ingredient.Quantity.HasValue,
+                        ingredient.Quantity.Value.ToString(
+                            Globalization.CultureInfo.CurrentCulture
+                        ),
+                        String.Empty
+                    ),
+                    ingredient.Unit
+                )
             Next
             PreparationMethodTextBox.Text = meal.PreparationMethod
             NotesTextBox.Text = meal.Notes

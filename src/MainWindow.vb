@@ -32,6 +32,17 @@
         Public Property Failure As Exception
     End Class
 
+    Private Class IngredientMigrationResult
+        Public Property UpdatedCount As Integer
+        Public ReadOnly Property RetryableFailures As New List(Of AdvancedMigrationFailure)
+    End Class
+
+    Private Class IngredientMigrationItemResult
+        Public Property Meal As Meal
+        Public Property Ingredients As List(Of RecipeIngredient)
+        Public Property RetryableFailure As Exception
+    End Class
+
     Public Sub New()
         InitializeComponent()
         ApplyAppIcon(Me)
@@ -41,6 +52,14 @@
         Dim meals = MealRepository.LoadAll()
         Dim advancedCandidateCount = meals.
             Where(Function(meal) meal.NeedsAdvancedScrape()).
+            Count()
+        Dim ingredientCandidateCount = meals.
+            Where(
+                Function(meal)
+                    Return meal.NeedsIngredientNormalization() AndAlso
+                        Not meal.NeedsAdvancedScrape()
+                End Function
+            ).
             Count()
         Dim needsCategoryUpgrade =
             MealRepository.LoadCategoryVersion() < MealRepository.CurrentCategoryVersion
@@ -55,21 +74,34 @@
 
         Dim advancedMigration As AdvancedMigrationResult = Nothing
         Dim categoryMigration As CategoryMigrationResult = Nothing
-        If advancedCandidateCount > 0 OrElse needsCategoryMigration Then
-            Dim loaderMessage As String
-            If advancedCandidateCount > 0 AndAlso needsCategoryMigration Then
-                loaderMessage =
-                    "Updating recipe details and meal categories in parallel..."
-            ElseIf advancedCandidateCount > 0 Then
-                loaderMessage =
-                    "Updating serving data, ingredients, directions, and notes for " &
+        Dim ingredientMigration As IngredientMigrationResult = Nothing
+        If advancedCandidateCount > 0 OrElse
+            ingredientCandidateCount > 0 OrElse
+            needsCategoryMigration Then
+            Dim compatibilityFlows As New List(Of String)
+            If advancedCandidateCount > 0 Then
+                compatibilityFlows.Add(
+                    "full details for " &
                     advancedCandidateCount &
-                    " existing recipes in parallel..."
-            ElseIf needsCategoryUpgrade Then
-                loaderMessage = "Updating recipe meal categories..."
-            Else
-                loaderMessage = "Categorizing existing recipes..."
+                    " recipe" &
+                    If(advancedCandidateCount = 1, "", "s")
+                )
             End If
+            If ingredientCandidateCount > 0 Then
+                compatibilityFlows.Add(
+                    "standardized ingredient measurements for " &
+                    ingredientCandidateCount &
+                    " recipe" &
+                    If(ingredientCandidateCount = 1, "", "s")
+                )
+            End If
+            If needsCategoryMigration Then
+                compatibilityFlows.Add("meal categories")
+            End If
+            Dim loaderMessage =
+                "Updating " &
+                String.Join(", ", compatibilityFlows) &
+                " in parallel..."
 
             Dim loader As New Loading(loaderMessage)
             loader.Show(Me)
@@ -77,6 +109,7 @@
                 Dim compatibilityTasks As New List(Of Task)
                 Dim advancedTask As Task(Of AdvancedMigrationResult) = Nothing
                 Dim categoryTask As Task(Of CategoryMigrationResult) = Nothing
+                Dim ingredientTask As Task(Of IngredientMigrationResult) = Nothing
 
                 If advancedCandidateCount > 0 Then
                     advancedTask = MigrateAdvancedDetailsAsync(meals)
@@ -86,10 +119,15 @@
                     categoryTask = MigrateCategoriesAsync(meals, needsCategoryUpgrade)
                     compatibilityTasks.Add(categoryTask)
                 End If
+                If ingredientCandidateCount > 0 Then
+                    ingredientTask = MigrateIngredientsAsync(meals)
+                    compatibilityTasks.Add(ingredientTask)
+                End If
 
                 Await Task.WhenAll(compatibilityTasks)
                 If advancedTask IsNot Nothing Then advancedMigration = Await advancedTask
                 If categoryTask IsNot Nothing Then categoryMigration = Await categoryTask
+                If ingredientTask IsNot Nothing Then ingredientMigration = Await ingredientTask
 
                 Dim recipesChanged =
                     advancedMigration IsNot Nothing AndAlso
@@ -97,11 +135,15 @@
                 Dim categoriesChanged =
                     categoryMigration IsNot Nothing AndAlso
                     categoryMigration.UpdatedCount > 0
+                Dim ingredientsChanged =
+                    ingredientMigration IsNot Nothing AndAlso
+                    ingredientMigration.UpdatedCount > 0
                 Dim preserveNormalizedCategories =
                     categoryMigration IsNot Nothing AndAlso
                     Not categoryMigration.Succeeded
                 If recipesChanged OrElse
                     categoriesChanged OrElse
+                    ingredientsChanged OrElse
                     preserveNormalizedCategories Then
                     MealRepository.SaveAll(meals)
                 End If
@@ -119,6 +161,9 @@
             End If
             If categoryMigration IsNot Nothing Then
                 ShowCategoryMigrationResult(categoryMigration)
+            End If
+            If ingredientMigration IsNot Nothing Then
+                ShowIngredientMigrationResult(ingredientMigration)
             End If
         End If
 
@@ -192,6 +237,51 @@
         Return result
     End Function
 
+    Private Async Function MigrateIngredientsAsync(
+        meals As List(Of Meal)
+    ) As Task(Of IngredientMigrationResult)
+        Dim result As New IngredientMigrationResult()
+        Dim migrationTasks = meals.
+            Where(
+                Function(candidate)
+                    Return candidate.NeedsIngredientNormalization() AndAlso
+                        Not candidate.NeedsAdvancedScrape()
+                End Function
+            ).
+            Select(Function(meal) MigrateIngredientMeasurementsAsync(meal)).
+            ToArray()
+        Dim itemResults = Await Task.WhenAll(migrationTasks)
+
+        For Each itemResult In itemResults
+            If itemResult.Ingredients IsNot Nothing Then
+                itemResult.Meal.ApplyNormalizedIngredients(
+                    itemResult.Ingredients
+                )
+                result.UpdatedCount += 1
+            ElseIf itemResult.RetryableFailure IsNot Nothing Then
+                result.RetryableFailures.Add(
+                    New AdvancedMigrationFailure With {
+                        .MealName = itemResult.Meal.Name,
+                        .Error = itemResult.RetryableFailure
+                    }
+                )
+            End If
+        Next
+        Return result
+    End Function
+
+    Private Async Function MigrateIngredientMeasurementsAsync(
+        meal As Meal
+    ) As Task(Of IngredientMigrationItemResult)
+        Dim result As New IngredientMigrationItemResult With {.Meal = meal}
+        Try
+            result.Ingredients = Await API.NormalizeIngredientsAsync(meal)
+        Catch ex As Exception
+            result.RetryableFailure = ex
+        End Try
+        Return result
+    End Function
+
     Private Sub ShowAdvancedMigrationResult(result As AdvancedMigrationResult)
         Dim messageParts As New List(Of String)
 
@@ -240,6 +330,28 @@
             "will be retried next time." &
             Environment.NewLine & Environment.NewLine & result.Failure.Message,
             "DietPlanner",
+            MessageBoxButtons.OK,
+            MessageBoxIcon.Warning
+        )
+    End Sub
+
+    Private Sub ShowIngredientMigrationResult(
+        result As IngredientMigrationResult
+    )
+        If result.RetryableFailures.Count = 0 Then Return
+
+        MessageBox.Show(
+            "These recipes could not have their ingredient measurements standardized and will be retried next time:" &
+            Environment.NewLine &
+            String.Join(
+                Environment.NewLine,
+                result.RetryableFailures.Select(
+                    Function(failure)
+                        Return "• " & failure.MealName & ": " & failure.Error.Message
+                    End Function
+                )
+            ),
+            "Ingredient measurement migration",
             MessageBoxButtons.OK,
             MessageBoxIcon.Warning
         )

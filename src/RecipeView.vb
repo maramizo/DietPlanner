@@ -1,6 +1,8 @@
 ﻿Public Class RecipeView
+    Private ReadOnly _meal As Meal
 
     Public Sub New(meal As Meal)
+        _meal = meal
         InitializeComponent()
         ApplyAppIcon(Me)
         NotifyIcon1.Icon = DirectCast(Icon.Clone(), Icon)
@@ -37,14 +39,7 @@
             "Source unavailable",
             If(meal.NeedsAdvancedScrape(), "Pending", "Complete")
         )
-        If meal.Ingredients IsNot Nothing Then
-            For Each ingredient In meal.Ingredients
-                IngredientsDataGrid.Rows.Add(
-                    ingredient.Ingredient,
-                    ingredient.Amount
-                )
-            Next
-        End If
+        RefreshIngredientMeasurements()
         PreparationMethodTextBox.Text = If(
             String.IsNullOrWhiteSpace(meal.PreparationMethod),
             If(
@@ -63,6 +58,22 @@
             ),
             meal.Notes
         )
+    End Sub
+
+    Public Sub RefreshIngredientMeasurements()
+        IngredientsDataGrid.Rows.Clear()
+        If _meal?.Ingredients Is Nothing Then Return
+
+        Dim measurementSystem =
+            IngredientMeasurementConverter.NormalizeSystem(
+                AppSettingsRepository.Load().IngredientMeasurementSystem
+            )
+        For Each ingredient In _meal.Ingredients
+            IngredientsDataGrid.Rows.Add(
+                ingredient.Ingredient,
+                ingredient.DisplayAmount(measurementSystem)
+            )
+        Next
     End Sub
 
     Private Sub RecipeView_Load(sender As Object, e As EventArgs) Handles MyBase.Load

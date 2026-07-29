@@ -4,9 +4,14 @@ Public Class WeeklyPlan
     Public Property TargetDailyIntakes As Dictionary(Of String, Double)
     Public Property SelectedRecipeUrls As List(Of String)
     Public Property SelectedRecipeNames As List(Of String)
+    <Newtonsoft.Json.JsonProperty(
+        ObjectCreationHandling:=Newtonsoft.Json.ObjectCreationHandling.Replace
+    )>
     Public Property PlannedMealTypes As List(Of String)
     Public Property GenerationMode As String
     Public Property RandomSeed As Integer
+    Public Property IngredientFilterApplied As Boolean
+    Public Property AllowedIngredientNames As List(Of String)
 
     Public Sub New()
         Days = New List(Of PlannedDay)
@@ -14,6 +19,7 @@ Public Class WeeklyPlan
         SelectedRecipeUrls = New List(Of String)
         SelectedRecipeNames = New List(Of String)
         PlannedMealTypes = New List(Of String)(WeekPlanGenerator.MealTypes)
+        AllowedIngredientNames = New List(Of String)
         GenerationMode = WeekPlanGenerationMode.SelectedRecipesOnly.ToString()
     End Sub
 End Class
@@ -33,9 +39,12 @@ Public Class PlannedMeal
     Public Property RecipeUrl As String
     Public Property Calories As Integer
     Public Property Nutritionals As Dictionary(Of String, Double)
+    Public Property RecipeServings As Integer
+    Public Property Ingredients As List(Of RecipeIngredient)
 
     Public Sub New()
         Nutritionals = New Dictionary(Of String, Double)
+        Ingredients = New List(Of RecipeIngredient)
     End Sub
 End Class
 

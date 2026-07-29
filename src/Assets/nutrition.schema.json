@@ -47,13 +47,43 @@
           "Ingredient": {
             "type": "string"
           },
-          "Amount": {
-            "type": "string"
+          "Quantity": {
+            "type": "number",
+            "minimum": 0
+          },
+          "Unit": {
+            "type": "string",
+            "enum": [
+              "teaspoon",
+              "tablespoon",
+              "fluid ounce",
+              "cup",
+              "pint",
+              "quart",
+              "gallon",
+              "milliliter",
+              "liter",
+              "ounce",
+              "pound",
+              "gram",
+              "kilogram",
+              "piece",
+              "clove",
+              "slice",
+              "can",
+              "package",
+              "bunch",
+              "pinch",
+              "dash",
+              "to taste",
+              "none"
+            ]
           }
         },
         "required": [
           "Ingredient",
-          "Amount"
+          "Quantity",
+          "Unit"
         ],
         "additionalProperties": false
       }

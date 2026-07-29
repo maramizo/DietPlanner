@@ -168,13 +168,11 @@ Public NotInheritable Class ThemeManager
 
     Public Shared Sub SavePreferences()
         EnsureSettingsLoaded()
-        AppSettingsRepository.Save(
-            New DietPlannerSettings With {
-                .ThemeKey = _currentTheme.Key,
-                .FontFamilyName = _currentFontFamilyName,
-                .FontSize = _currentFontSize
-            }
-        )
+        Dim settings = AppSettingsRepository.Load()
+        settings.ThemeKey = _currentTheme.Key
+        settings.FontFamilyName = _currentFontFamilyName
+        settings.FontSize = _currentFontSize
+        AppSettingsRepository.Save(settings)
     End Sub
 
     Public Shared Function CreateApplicationFont(

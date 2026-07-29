@@ -6,6 +6,8 @@ Public Class DietPlannerSettings
     Public Property FontFamilyName As String =
         ThemeManager.DefaultFontFamilyName
     Public Property FontSize As Single = ThemeManager.DefaultFontSize
+    Public Property IngredientMeasurementSystem As String =
+        IngredientMeasurementConverter.SourceUnitsSystem
 End Class
 
 Public NotInheritable Class AppSettingsRepository
