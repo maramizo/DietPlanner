@@ -2,8 +2,8 @@
     Private Const EmptySelectionText As String = "Select an option..."
     Private Shared ReadOnly SlotMealTypes As String() = {
         "Breakfast",
-        "Lunch",
         "Brunch",
+        "Lunch",
         "Dinner",
         "Snack"
     }
@@ -465,8 +465,14 @@
                 ComboBox
             )
             Dim hasMeal = TryCast(comboBox.SelectedItem, Meal) IsNot Nothing
-            DirectCast(Controls.Find("ViewRecipe" & index, True)(0), Button).Enabled = hasMeal
-            DirectCast(Controls.Find("Button" & index, True)(0), Button).Enabled = hasMeal
+            For Each buttonPrefix In {"Button", "ClearButton", "ViewRecipe"}
+                Dim actionButton = DirectCast(
+                    Controls.Find(buttonPrefix & index, True)(0),
+                    Button
+                )
+                actionButton.Enabled = hasMeal
+                actionButton.Visible = hasMeal
+            Next
         Next
     End Sub
 

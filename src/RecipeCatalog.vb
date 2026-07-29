@@ -16,8 +16,8 @@ Public Class RecipeCatalog
                 meal.Name,
                 meal.Calory,
                 HasMealType(meal, "Breakfast"),
-                HasMealType(meal, "Lunch"),
                 HasMealType(meal, "Brunch"),
+                HasMealType(meal, "Lunch"),
                 HasMealType(meal, "Dinner"),
                 HasMealType(meal, "Snack"),
                 GetAdvancedStatus(meal)
@@ -87,8 +87,8 @@ Public Class RecipeCatalog
 
             Dim mealTypes As New List(Of String)
             AddCheckedMealType(row, BreakfastColumn, "Breakfast", mealTypes)
-            AddCheckedMealType(row, LunchColumn, "Lunch", mealTypes)
             AddCheckedMealType(row, BrunchColumn, "Brunch", mealTypes)
+            AddCheckedMealType(row, LunchColumn, "Lunch", mealTypes)
             AddCheckedMealType(row, DinnerColumn, "Dinner", mealTypes)
             AddCheckedMealType(row, SnackColumn, "Snack", mealTypes)
 

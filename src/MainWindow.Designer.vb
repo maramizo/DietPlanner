@@ -103,18 +103,18 @@ Partial Class MainWindow
         Label1.AutoSize = True
         Label1.Location = New Point(15, 44)
         Label1.Name = "Label1"
-        Label1.Size = New Size(45, 15)
+        Label1.Size = New Size(40, 15)
         Label1.TabIndex = 5
-        Label1.Text = "Lunch"
+        Label1.Text = "Brunch"
         '
         ' Label2
         '
         Label2.AutoSize = True
         Label2.Location = New Point(15, 73)
         Label2.Name = "Label2"
-        Label2.Size = New Size(40, 15)
+        Label2.Size = New Size(45, 15)
         Label2.TabIndex = 6
-        Label2.Text = "Brunch"
+        Label2.Text = "Lunch"
         '
         ' Label3
         '
@@ -169,6 +169,7 @@ Partial Class MainWindow
         Button1.TabIndex = 17
         Button1.Text = "View Details"
         Button1.UseVisualStyleBackColor = True
+        Button1.Visible = False
         '
         ' Button2
         '
@@ -179,6 +180,7 @@ Partial Class MainWindow
         Button2.TabIndex = 18
         Button2.Text = "View Details"
         Button2.UseVisualStyleBackColor = True
+        Button2.Visible = False
         '
         ' Button3
         '
@@ -189,6 +191,7 @@ Partial Class MainWindow
         Button3.TabIndex = 19
         Button3.Text = "View Details"
         Button3.UseVisualStyleBackColor = True
+        Button3.Visible = False
         '
         ' Button4
         '
@@ -199,6 +202,7 @@ Partial Class MainWindow
         Button4.TabIndex = 20
         Button4.Text = "View Details"
         Button4.UseVisualStyleBackColor = True
+        Button4.Visible = False
         '
         ' Button5
         '
@@ -209,6 +213,7 @@ Partial Class MainWindow
         Button5.TabIndex = 21
         Button5.Text = "View Details"
         Button5.UseVisualStyleBackColor = True
+        Button5.Visible = False
         '
         ' AddButton
         '
@@ -221,48 +226,58 @@ Partial Class MainWindow
         '
         ' ClearButton5
         '
+        ClearButton5.Enabled = False
         ClearButton5.Location = New Point(447, 127)
         ClearButton5.Name = "ClearButton5"
         ClearButton5.Size = New Size(66, 23)
         ClearButton5.TabIndex = 27
         ClearButton5.Text = "Clear"
         ClearButton5.UseVisualStyleBackColor = True
+        ClearButton5.Visible = False
         '
         ' ClearButton4
         '
+        ClearButton4.Enabled = False
         ClearButton4.Location = New Point(447, 98)
         ClearButton4.Name = "ClearButton4"
         ClearButton4.Size = New Size(66, 23)
         ClearButton4.TabIndex = 26
         ClearButton4.Text = "Clear"
         ClearButton4.UseVisualStyleBackColor = True
+        ClearButton4.Visible = False
         '
         ' ClearButton3
         '
+        ClearButton3.Enabled = False
         ClearButton3.Location = New Point(447, 69)
         ClearButton3.Name = "ClearButton3"
         ClearButton3.Size = New Size(66, 23)
         ClearButton3.TabIndex = 25
         ClearButton3.Text = "Clear"
         ClearButton3.UseVisualStyleBackColor = True
+        ClearButton3.Visible = False
         '
         ' ClearButton2
         '
+        ClearButton2.Enabled = False
         ClearButton2.Location = New Point(447, 40)
         ClearButton2.Name = "ClearButton2"
         ClearButton2.Size = New Size(66, 23)
         ClearButton2.TabIndex = 24
         ClearButton2.Text = "Clear"
         ClearButton2.UseVisualStyleBackColor = True
+        ClearButton2.Visible = False
         '
         ' ClearButton1
         '
+        ClearButton1.Enabled = False
         ClearButton1.Location = New Point(447, 11)
         ClearButton1.Name = "ClearButton1"
         ClearButton1.Size = New Size(66, 23)
         ClearButton1.TabIndex = 23
         ClearButton1.Text = "Clear"
         ClearButton1.UseVisualStyleBackColor = True
+        ClearButton1.Visible = False
         '
         ' ViewDailyFactsButton
         '
@@ -282,6 +297,7 @@ Partial Class MainWindow
         ViewRecipe1.TabIndex = 29
         ViewRecipe1.Text = "View Recipe"
         ViewRecipe1.UseVisualStyleBackColor = True
+        ViewRecipe1.Visible = False
         '
         ' ViewRecipe2
         '
@@ -292,6 +308,7 @@ Partial Class MainWindow
         ViewRecipe2.TabIndex = 30
         ViewRecipe2.Text = "View Recipe"
         ViewRecipe2.UseVisualStyleBackColor = True
+        ViewRecipe2.Visible = False
         '
         ' ViewRecipe4
         '
@@ -302,6 +319,7 @@ Partial Class MainWindow
         ViewRecipe4.TabIndex = 32
         ViewRecipe4.Text = "View Recipe"
         ViewRecipe4.UseVisualStyleBackColor = True
+        ViewRecipe4.Visible = False
         '
         ' ViewRecipe3
         '
@@ -312,6 +330,7 @@ Partial Class MainWindow
         ViewRecipe3.TabIndex = 31
         ViewRecipe3.Text = "View Recipe"
         ViewRecipe3.UseVisualStyleBackColor = True
+        ViewRecipe3.Visible = False
         '
         ' ViewRecipe5
         '
@@ -322,6 +341,7 @@ Partial Class MainWindow
         ViewRecipe5.TabIndex = 33
         ViewRecipe5.Text = "View Recipe"
         ViewRecipe5.UseVisualStyleBackColor = True
+        ViewRecipe5.Visible = False
         '
         ' ClearAllButton
         '

@@ -1,6 +1,7 @@
 Public Class WeekPlanner
     Private ReadOnly _allMeals As List(Of Meal)
     Private _currentPlan As WeeklyPlan
+    Private _updatingPlannedMealTypes As Boolean
 
     Private Class RecipeChoice
         Public ReadOnly Property Meal As Meal
@@ -22,10 +23,25 @@ Public Class WeekPlanner
     Public Sub New()
         InitializeComponent()
         ApplyAppIcon(Me)
+        InitializePlannedMealTypes()
+        AddHandler PlannedMealTypesCheckedListBox.ItemCheck,
+            AddressOf PlannedMealTypesCheckedListBox_ItemCheck
         _allMeals = MealRepository.LoadAll()
         PopulateRecipeChoices()
         UpdateGenerationModeCopy()
         LoadSavedPlan()
+    End Sub
+
+    Private Sub InitializePlannedMealTypes()
+        _updatingPlannedMealTypes = True
+        Try
+            For index As Integer = 0 To PlannedMealTypesCheckedListBox.Items.Count - 1
+                PlannedMealTypesCheckedListBox.SetItemChecked(index, True)
+            Next
+        Finally
+            _updatingPlannedMealTypes = False
+        End Try
+        UpdatePlanColumns(WeekPlanGenerator.MealTypes)
     End Sub
 
     Private Sub PopulateRecipeChoices()
@@ -42,7 +58,8 @@ Public Class WeekPlanner
             SetReadyStatus()
             Return
         End If
-        If Not IsSavedPlanCompatible(savedPlan) Then
+        Dim plannedMealTypes = GetPlanMealTypes(savedPlan)
+        If Not IsSavedPlanCompatible(savedPlan, plannedMealTypes) Then
             StatusLabel.Text =
                 "Recipes or categories changed since the saved plan. Select recipes and generate it again."
             Return
@@ -50,6 +67,7 @@ Public Class WeekPlanner
 
         _currentPlan = savedPlan
         RestoreSavedGenerationMode(savedPlan)
+        RestoreSavedMealTypes(plannedMealTypes)
         RestoreSavedSelection(savedPlan)
         DisplayPlan(savedPlan)
         StatusLabel.Text =
@@ -68,16 +86,28 @@ Public Class WeekPlanner
         UpdateGenerationModeCopy()
     End Sub
 
-    Private Function IsSavedPlanCompatible(plan As WeeklyPlan) As Boolean
+    Private Function IsSavedPlanCompatible(
+        plan As WeeklyPlan,
+        plannedMealTypes As List(Of String)
+    ) As Boolean
+        If plannedMealTypes.Count = 0 Then Return False
+        Dim expectedMealTypes As New HashSet(Of String)(
+            plannedMealTypes,
+            StringComparer.OrdinalIgnoreCase
+        )
+
         For Each day In plan.Days
             If day Is Nothing OrElse day.Meals Is Nothing OrElse
-                day.Meals.Count <> WeekPlanGenerator.MealTypes.Length Then
+                day.Meals.Count <> plannedMealTypes.Count Then
                 Return False
             End If
             If day.Meals.Any(Function(meal) meal Is Nothing) OrElse
                 day.Meals.Select(Function(meal) meal.MealType).
                     Distinct(StringComparer.OrdinalIgnoreCase).
-                    Count() <> WeekPlanGenerator.MealTypes.Length Then
+                    Count() <> plannedMealTypes.Count OrElse
+                day.Meals.Any(
+                    Function(meal) Not expectedMealTypes.Contains(meal.MealType)
+                ) Then
                 Return False
             End If
 
@@ -98,6 +128,59 @@ Public Class WeekPlanner
 
         Return True
     End Function
+
+    Private Shared Function GetPlanMealTypes(
+        plan As WeeklyPlan
+    ) As List(Of String)
+        Dim savedMealTypes = If(
+            plan?.PlannedMealTypes,
+            New List(Of String)
+        )
+        If savedMealTypes.Count = 0 AndAlso
+            plan?.Days IsNot Nothing AndAlso
+            plan.Days.Count > 0 AndAlso
+            plan.Days(0)?.Meals IsNot Nothing Then
+            savedMealTypes = plan.Days(0).Meals.
+                Where(Function(meal) meal IsNot Nothing).
+                Select(Function(meal) meal.MealType).
+                ToList()
+        End If
+
+        Dim normalized = WeekPlanGenerator.MealTypes.Where(
+            Function(optionName) savedMealTypes.Any(
+                Function(value) String.Equals(
+                    value,
+                    optionName,
+                    StringComparison.OrdinalIgnoreCase
+                )
+            )
+        ).ToList()
+        If normalized.Count = 0 Then
+            Return New List(Of String)(WeekPlanGenerator.MealTypes)
+        End If
+        Return normalized
+    End Function
+
+    Private Sub RestoreSavedMealTypes(plannedMealTypes As List(Of String))
+        Dim selected As New HashSet(Of String)(
+            plannedMealTypes,
+            StringComparer.OrdinalIgnoreCase
+        )
+        _updatingPlannedMealTypes = True
+        Try
+            For index As Integer = 0 To PlannedMealTypesCheckedListBox.Items.Count - 1
+                PlannedMealTypesCheckedListBox.SetItemChecked(
+                    index,
+                    selected.Contains(
+                        PlannedMealTypesCheckedListBox.Items(index).ToString()
+                    )
+                )
+            Next
+        Finally
+            _updatingPlannedMealTypes = False
+        End Try
+        UpdatePlanColumns(plannedMealTypes)
+    End Sub
 
     Private Sub RestoreSavedSelection(plan As WeeklyPlan)
         Dim selectedUrls As New HashSet(Of String)(
@@ -144,6 +227,7 @@ Public Class WeekPlanner
             Select(Function(choice) choice.Meal).
             ToList()
         Dim generationMode = GetGenerationMode()
+        Dim plannedMealTypes = GetSelectedPlannedMealTypes()
 
         Try
             Dim nutrientInfo As New NutrientInfo()
@@ -151,6 +235,7 @@ Public Class WeekPlanner
                 selectedMeals,
                 _allMeals,
                 generationMode,
+                plannedMealTypes,
                 nutrientInfo.RecommendedDailyIntakes
             )
             WeekPlanRepository.Save(_currentPlan)
@@ -193,6 +278,34 @@ Public Class WeekPlanner
         Return WeekPlanGenerationMode.SelectedRecipesOnly
     End Function
 
+    Private Function GetSelectedPlannedMealTypes() As List(Of String)
+        Dim selected As New HashSet(Of String)(
+            PlannedMealTypesCheckedListBox.CheckedItems.
+                Cast(Of Object)().
+                Select(Function(item) item.ToString()),
+            StringComparer.OrdinalIgnoreCase
+        )
+        Return WeekPlanGenerator.MealTypes.Where(
+            Function(mealType) selected.Contains(mealType)
+        ).ToList()
+    End Function
+
+    Private Sub PlannedMealTypesCheckedListBox_ItemCheck(
+        sender As Object,
+        e As ItemCheckEventArgs
+    )
+        If _updatingPlannedMealTypes OrElse IsDisposed Then Return
+        BeginInvoke(
+            New Action(
+                Sub()
+                    If IsDisposed Then Return
+                    UpdatePlanColumns(GetSelectedPlannedMealTypes())
+                    SetReadyStatus()
+                End Sub
+            )
+        )
+    End Sub
+
     Private Sub GenerationMode_CheckedChanged(
         sender As Object,
         e As EventArgs
@@ -222,16 +335,22 @@ Public Class WeekPlanner
         If FullCatalogRadioButton IsNot Nothing AndAlso
             FullCatalogRadioButton.Checked Then
             StatusLabel.Text =
-                "Check any must-have recipes, then generate or shuffle a full-catalog plan."
+                "Choose meals and any must-have recipes." &
+                Environment.NewLine &
+                "Then generate or shuffle."
         Else
             StatusLabel.Text =
-                "Select recipes for every meal type, then generate or shuffle the week."
+                "Cover every checked meal type." &
+                Environment.NewLine &
+                "Then generate or shuffle."
         End If
     End Sub
 
     Private Sub DisplayPlan(plan As WeeklyPlan)
         PlanDataGrid.Rows.Clear()
         SummaryDataGrid.Rows.Clear()
+        Dim plannedMealTypes = GetPlanMealTypes(plan)
+        UpdatePlanColumns(plannedMealTypes)
 
         Dim calorieTotals As New List(Of Double)
         Dim nutrientCoverage As New List(Of Double)
@@ -249,8 +368,8 @@ Public Class WeekPlanner
             Dim rowIndex = PlanDataGrid.Rows.Add(
                 day.Name,
                 GetMealName(mealsByType, "Breakfast"),
-                GetMealName(mealsByType, "Lunch"),
                 GetMealName(mealsByType, "Brunch"),
+                GetMealName(mealsByType, "Lunch"),
                 GetMealName(mealsByType, "Dinner"),
                 GetMealName(mealsByType, "Snack"),
                 totalCalories.ToString("N0"),
@@ -258,10 +377,10 @@ Public Class WeekPlanner
             )
             Dim row = PlanDataGrid.Rows(rowIndex)
             row.Height = 48
-            For mealTypeIndex As Integer = 0 To WeekPlanGenerator.MealTypes.Length - 1
-                Dim mealType = WeekPlanGenerator.MealTypes(mealTypeIndex)
+            For Each mealType In plannedMealTypes
                 If mealsByType.ContainsKey(mealType) Then
-                    row.Cells(mealTypeIndex + 1).Tag = mealsByType(mealType)
+                    row.Cells(GetMealTypeColumn(mealType).Index).Tag =
+                        mealsByType(mealType)
                 End If
             Next
         Next
@@ -272,6 +391,40 @@ Public Class WeekPlanner
             nutrientCoverage
         )
     End Sub
+
+    Private Sub UpdatePlanColumns(plannedMealTypes As IEnumerable(Of String))
+        Dim visibleMealTypes As New HashSet(Of String)(
+            If(plannedMealTypes, Enumerable.Empty(Of String)),
+            StringComparer.OrdinalIgnoreCase
+        )
+        For Each mealType In WeekPlanGenerator.MealTypes
+            GetMealTypeColumn(mealType).Visible =
+                visibleMealTypes.Contains(mealType)
+        Next
+    End Sub
+
+    Private Function GetMealTypeColumn(
+        mealType As String
+    ) As DataGridViewColumn
+        Select Case mealType
+            Case "Breakfast"
+                Return BreakfastColumn
+            Case "Brunch"
+                Return BrunchColumn
+            Case "Lunch"
+                Return LunchColumn
+            Case "Dinner"
+                Return DinnerColumn
+            Case "Snack"
+                Return SnackColumn
+            Case Else
+                Throw New ArgumentOutOfRangeException(
+                    NameOf(mealType),
+                    mealType,
+                    "Unknown meal type."
+                )
+        End Select
+    End Function
 
     Private Shared Function GetMealName(
         mealsByType As Dictionary(Of String, PlannedMeal),

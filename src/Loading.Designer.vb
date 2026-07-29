@@ -36,6 +36,7 @@ Partial Class Loading
         ' Label1
         ' 
         Label1.Anchor = AnchorStyles.Left Or AnchorStyles.Right
+        Label1.AutoEllipsis = False
         Label1.Location = New Point(12, 37)
         Label1.Name = "Label1"
         Label1.Size = New Size(331, 23)

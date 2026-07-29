@@ -6,8 +6,8 @@
 
     Private Shared ReadOnly MealTypeOrder As String() = {
         "Breakfast",
-        "Lunch",
         "Brunch",
+        "Lunch",
         "Dinner",
         "Snack"
     }

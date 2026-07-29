@@ -16,13 +16,12 @@ Public NotInheritable Class WeekPlanGenerator
 
     Public Shared ReadOnly MealTypes As String() = {
         "Breakfast",
-        "Lunch",
         "Brunch",
+        "Lunch",
         "Dinner",
         "Snack"
     }
 
-    Private Const MaximumGuaranteedMeals As Integer = 35
     Private Const OptimizationPasses As Integer = 10
     Private Const RandomPreferenceWeight As Double = 0.08
 
@@ -30,10 +29,12 @@ Public NotInheritable Class WeekPlanGenerator
     End Sub
 
     Public Shared Function GetMissingMealTypes(
-        selectedMeals As IEnumerable(Of Meal)
+        selectedMeals As IEnumerable(Of Meal),
+        Optional plannedMealTypes As IEnumerable(Of String) = Nothing
     ) As List(Of String)
         Dim meals = NormalizeMeals(selectedMeals)
-        Return MealTypes.Where(
+        Dim normalizedMealTypes = NormalizePlannedMealTypes(plannedMealTypes)
+        Return normalizedMealTypes.Where(
             Function(mealType) Not meals.Any(
                 Function(meal) SupportsExplicitMealType(meal, mealType)
             )
@@ -50,6 +51,7 @@ Public NotInheritable Class WeekPlanGenerator
             selected,
             selected,
             WeekPlanGenerationMode.SelectedRecipesOnly,
+            MealTypes,
             targetDailyIntakes,
             randomSeed
         )
@@ -62,8 +64,27 @@ Public NotInheritable Class WeekPlanGenerator
         targetDailyIntakes As IDictionary(Of String, Double),
         Optional randomSeed As Integer? = Nothing
     ) As WeeklyPlan
+        Return Generate(
+            selectedMeals,
+            availableMeals,
+            generationMode,
+            MealTypes,
+            targetDailyIntakes,
+            randomSeed
+        )
+    End Function
+
+    Public Shared Function Generate(
+        selectedMeals As IEnumerable(Of Meal),
+        availableMeals As IEnumerable(Of Meal),
+        generationMode As WeekPlanGenerationMode,
+        plannedMealTypes As IEnumerable(Of String),
+        targetDailyIntakes As IDictionary(Of String, Double),
+        Optional randomSeed As Integer? = Nothing
+    ) As WeeklyPlan
         Dim guaranteedMeals = NormalizeMeals(selectedMeals)
         Dim catalogMeals = NormalizeMeals(availableMeals)
+        Dim normalizedMealTypes = NormalizePlannedMealTypes(plannedMealTypes)
         Dim candidateMeals As List(Of Meal)
 
         If generationMode = WeekPlanGenerationMode.SelectedRecipesOnly Then
@@ -76,7 +97,17 @@ Public NotInheritable Class WeekPlanGenerator
             candidateMeals = NormalizeMeals(candidateMeals)
         End If
 
-        ValidateInputs(candidateMeals, guaranteedMeals, generationMode)
+        ValidateInputs(
+            candidateMeals,
+            guaranteedMeals,
+            generationMode,
+            normalizedMealTypes
+        )
+        candidateMeals = candidateMeals.Where(
+            Function(meal) normalizedMealTypes.Any(
+                Function(mealType) SupportsExplicitMealType(meal, mealType)
+            )
+        ).ToList()
 
         Dim seed = If(
             randomSeed.HasValue,
@@ -90,13 +121,19 @@ Public NotInheritable Class WeekPlanGenerator
         Dim assignments = CreateInitialAssignments(
             candidateMeals,
             guaranteedMeals,
+            normalizedMealTypes,
             random
         )
-        Dim randomCosts = CreateRandomPreferenceCosts(candidateMeals, random)
+        Dim randomCosts = CreateRandomPreferenceCosts(
+            candidateMeals,
+            normalizedMealTypes.Count,
+            random
+        )
         OptimizeAssignments(
             assignments,
             candidateMeals,
             guaranteedMeals,
+            normalizedMealTypes,
             targets,
             randomCosts,
             random
@@ -104,6 +141,7 @@ Public NotInheritable Class WeekPlanGenerator
         Return CreatePlan(
             assignments,
             guaranteedMeals,
+            normalizedMealTypes,
             targets,
             generationMode,
             seed
@@ -123,11 +161,37 @@ Public NotInheritable Class WeekPlanGenerator
             ToList()
     End Function
 
+    Private Shared Function NormalizePlannedMealTypes(
+        source As IEnumerable(Of String)
+    ) As List(Of String)
+        If source Is Nothing Then Return New List(Of String)(MealTypes)
+
+        Dim requested = source.Where(
+            Function(value) Not String.IsNullOrWhiteSpace(value)
+        ).ToList()
+        Return MealTypes.Where(
+            Function(optionName) requested.Any(
+                Function(value) String.Equals(
+                    value,
+                    optionName,
+                    StringComparison.OrdinalIgnoreCase
+                )
+            )
+        ).ToList()
+    End Function
+
     Private Shared Sub ValidateInputs(
         candidateMeals As List(Of Meal),
         guaranteedMeals As List(Of Meal),
-        generationMode As WeekPlanGenerationMode
+        generationMode As WeekPlanGenerationMode,
+        plannedMealTypes As List(Of String)
     )
+        If plannedMealTypes.Count = 0 Then
+            Throw New WeeklyPlanException(
+                "Select at least one meal type to plan."
+            )
+        End If
+
         If candidateMeals.Count = 0 Then
             If generationMode = WeekPlanGenerationMode.SelectedRecipesOnly Then
                 Throw New WeeklyPlanException(
@@ -139,13 +203,34 @@ Public NotInheritable Class WeekPlanGenerator
             )
         End If
 
-        If guaranteedMeals.Count > MaximumGuaranteedMeals Then
+        Dim unsupportedGuaranteed = guaranteedMeals.Where(
+            Function(meal) Not plannedMealTypes.Any(
+                Function(mealType) SupportsExplicitMealType(meal, mealType)
+            )
+        ).Select(Function(meal) meal.Name).ToList()
+        If unsupportedGuaranteed.Count > 0 Then
             Throw New WeeklyPlanException(
-                "A week has 35 meal slots. Guarantee no more than 35 recipes so every selected recipe can appear."
+                "These guaranteed recipes do not match any selected meal type: " &
+                String.Join(", ", unsupportedGuaranteed) &
+                ". Select a matching meal type or uncheck those recipes."
             )
         End If
 
-        Dim missingMealTypes = GetMissingMealTypes(candidateMeals)
+        Dim availableSlots = DayNames.Length * plannedMealTypes.Count
+        If guaranteedMeals.Count > availableSlots Then
+            Throw New WeeklyPlanException(
+                "This week has " &
+                availableSlots &
+                " selected meal slots. Guarantee no more than " &
+                availableSlots &
+                " recipes so every selected recipe can appear."
+            )
+        End If
+
+        Dim missingMealTypes = GetMissingMealTypes(
+            candidateMeals,
+            plannedMealTypes
+        )
         If missingMealTypes.Count > 0 Then
             Dim sourceName = If(
                 generationMode = WeekPlanGenerationMode.SelectedRecipesOnly,
@@ -155,7 +240,7 @@ Public NotInheritable Class WeekPlanGenerator
             Throw New WeeklyPlanException(
                 "The " & sourceName & " do not cover: " &
                 String.Join(", ", missingMealTypes) &
-                ". Add or select at least one recipe for every meal type."
+                ". Add or select at least one recipe for every selected meal type."
             )
         End If
     End Sub
@@ -179,14 +264,17 @@ Public NotInheritable Class WeekPlanGenerator
     Private Shared Function CreateInitialAssignments(
         candidateMeals As List(Of Meal),
         guaranteedMeals As List(Of Meal),
+        plannedMealTypes As List(Of String),
         random As Random
     ) As Meal(,)
-        Dim positionOwners(DayNames.Length * MealTypes.Length - 1) As Meal
+        Dim positionOwners(
+            DayNames.Length * plannedMealTypes.Count - 1
+        ) As Meal
         Dim randomizedGuaranteed = Shuffle(guaranteedMeals, random)
         Dim orderedForMatching = randomizedGuaranteed.OrderBy(
-            Function(meal) MealTypes.Count(
+            Function(meal) plannedMealTypes.Where(
                 Function(mealType) SupportsExplicitMealType(meal, mealType)
-            )
+            ).Count()
         ).ToList()
 
         For Each meal In orderedForMatching
@@ -195,6 +283,7 @@ Public NotInheritable Class WeekPlanGenerator
                 meal,
                 positionOwners,
                 visited,
+                plannedMealTypes,
                 random
             ) Then
                 Throw New WeeklyPlanException(
@@ -204,14 +293,17 @@ Public NotInheritable Class WeekPlanGenerator
             End If
         Next
 
-        Dim assignments(DayNames.Length - 1, MealTypes.Length - 1) As Meal
+        Dim assignments(
+            DayNames.Length - 1,
+            plannedMealTypes.Count - 1
+        ) As Meal
         Dim usage = candidateMeals.ToDictionary(
             Function(meal) meal,
             Function(meal) 0
         )
         For position As Integer = 0 To positionOwners.Length - 1
-            Dim dayIndex = position \ MealTypes.Length
-            Dim mealTypeIndex = position Mod MealTypes.Length
+            Dim dayIndex = position \ plannedMealTypes.Count
+            Dim mealTypeIndex = position Mod plannedMealTypes.Count
             assignments(dayIndex, mealTypeIndex) = positionOwners(position)
             If positionOwners(position) IsNot Nothing Then
                 usage(positionOwners(position)) += 1
@@ -219,8 +311,8 @@ Public NotInheritable Class WeekPlanGenerator
         Next
 
         For Each position In ShuffleIndexes(positionOwners.Length, random)
-            Dim dayIndex = position \ MealTypes.Length
-            Dim mealTypeIndex = position Mod MealTypes.Length
+            Dim dayIndex = position \ plannedMealTypes.Count
+            Dim mealTypeIndex = position Mod plannedMealTypes.Count
             If assignments(dayIndex, mealTypeIndex) IsNot Nothing Then Continue For
             Dim currentDayIndex = dayIndex
             Dim currentMealTypeIndex = mealTypeIndex
@@ -229,7 +321,7 @@ Public NotInheritable Class WeekPlanGenerator
                 candidateMeals.Where(
                     Function(meal) SupportsExplicitMealType(
                         meal,
-                        MealTypes(currentMealTypeIndex)
+                        plannedMealTypes(currentMealTypeIndex)
                     )
                 ),
                 random
@@ -256,7 +348,7 @@ Public NotInheritable Class WeekPlanGenerator
         dayIndex As Integer,
         meal As Meal
     ) As Boolean
-        For mealTypeIndex As Integer = 0 To MealTypes.Length - 1
+        For mealTypeIndex As Integer = 0 To assignments.GetLength(1) - 1
             If assignments(dayIndex, mealTypeIndex) Is meal Then Return True
         Next
         Return False
@@ -266,12 +358,18 @@ Public NotInheritable Class WeekPlanGenerator
         meal As Meal,
         positionOwners As Meal(),
         visited As Boolean(),
+        plannedMealTypes As List(Of String),
         random As Random
     ) As Boolean
         For Each position In ShuffleIndexes(positionOwners.Length, random)
             If visited(position) Then Continue For
-            Dim mealTypeIndex = position Mod MealTypes.Length
-            If Not SupportsExplicitMealType(meal, MealTypes(mealTypeIndex)) Then Continue For
+            Dim mealTypeIndex = position Mod plannedMealTypes.Count
+            If Not SupportsExplicitMealType(
+                meal,
+                plannedMealTypes(mealTypeIndex)
+            ) Then
+                Continue For
+            End If
 
             visited(position) = True
             If positionOwners(position) Is Nothing OrElse
@@ -279,6 +377,7 @@ Public NotInheritable Class WeekPlanGenerator
                     positionOwners(position),
                     positionOwners,
                     visited,
+                    plannedMealTypes,
                     random
                 ) Then
                 positionOwners(position) = meal
@@ -291,15 +390,16 @@ Public NotInheritable Class WeekPlanGenerator
 
     Private Shared Function CreateRandomPreferenceCosts(
         meals As List(Of Meal),
+        mealTypeCount As Integer,
         random As Random
     ) As Double(,,)
         Dim costs(
             DayNames.Length - 1,
-            MealTypes.Length - 1,
+            mealTypeCount - 1,
             meals.Count - 1
         ) As Double
         For dayIndex As Integer = 0 To DayNames.Length - 1
-            For mealTypeIndex As Integer = 0 To MealTypes.Length - 1
+            For mealTypeIndex As Integer = 0 To mealTypeCount - 1
                 For mealIndex As Integer = 0 To meals.Count - 1
                     costs(dayIndex, mealTypeIndex, mealIndex) = random.NextDouble()
                 Next
@@ -312,6 +412,7 @@ Public NotInheritable Class WeekPlanGenerator
         assignments As Meal(,),
         meals As List(Of Meal),
         guaranteedMeals As List(Of Meal),
+        plannedMealTypes As List(Of String),
         targets As Dictionary(Of String, Double),
         randomCosts As Double(,,),
         random As Random
@@ -335,14 +436,14 @@ Public NotInheritable Class WeekPlanGenerator
             mealIndexes,
             randomCosts
         )
-        Dim positionCount = DayNames.Length * MealTypes.Length
+        Dim positionCount = DayNames.Length * plannedMealTypes.Count
 
         For pass As Integer = 1 To OptimizationPasses
             Dim changed As Boolean = False
 
             For Each position In ShuffleIndexes(positionCount, random)
-                Dim dayIndex = position \ MealTypes.Length
-                Dim mealTypeIndex = position Mod MealTypes.Length
+                Dim dayIndex = position \ plannedMealTypes.Count
+                Dim mealTypeIndex = position Mod plannedMealTypes.Count
                 Dim current = assignments(dayIndex, mealTypeIndex)
                 Dim bestMeal = current
                 Dim positionBestScore = bestScore
@@ -351,7 +452,7 @@ Public NotInheritable Class WeekPlanGenerator
                     If candidate Is current OrElse
                         Not SupportsExplicitMealType(
                             candidate,
-                            MealTypes(mealTypeIndex)
+                            plannedMealTypes(mealTypeIndex)
                         ) Then
                         Continue For
                     End If
@@ -392,6 +493,7 @@ Public NotInheritable Class WeekPlanGenerator
             If ImproveWithSwaps(
                 assignments,
                 meals,
+                plannedMealTypes,
                 targets,
                 usage,
                 mealIndexes,
@@ -409,6 +511,7 @@ Public NotInheritable Class WeekPlanGenerator
     Private Shared Function ImproveWithSwaps(
         assignments As Meal(,),
         meals As List(Of Meal),
+        plannedMealTypes As List(Of String),
         targets As Dictionary(Of String, Double),
         usage As Dictionary(Of Meal, Integer),
         mealIndexes As Dictionary(Of Meal, Integer),
@@ -417,25 +520,25 @@ Public NotInheritable Class WeekPlanGenerator
         ByRef bestScore As Double
     ) As Boolean
         Dim changed As Boolean = False
-        Dim positionCount = DayNames.Length * MealTypes.Length
+        Dim positionCount = DayNames.Length * plannedMealTypes.Count
 
         For Each firstPosition In ShuffleIndexes(positionCount, random)
-            Dim firstDay = firstPosition \ MealTypes.Length
-            Dim firstMealType = firstPosition Mod MealTypes.Length
+            Dim firstDay = firstPosition \ plannedMealTypes.Count
+            Dim firstMealType = firstPosition Mod plannedMealTypes.Count
             Dim firstMeal = assignments(firstDay, firstMealType)
 
             For Each secondPosition In ShuffleIndexes(positionCount, random)
                 If secondPosition <= firstPosition Then Continue For
-                Dim secondDay = secondPosition \ MealTypes.Length
-                Dim secondMealType = secondPosition Mod MealTypes.Length
+                Dim secondDay = secondPosition \ plannedMealTypes.Count
+                Dim secondMealType = secondPosition Mod plannedMealTypes.Count
                 Dim secondMeal = assignments(secondDay, secondMealType)
                 If firstMeal Is secondMeal Then Continue For
                 If Not SupportsExplicitMealType(
                     firstMeal,
-                    MealTypes(secondMealType)
+                    plannedMealTypes(secondMealType)
                 ) OrElse Not SupportsExplicitMealType(
                     secondMeal,
-                    MealTypes(firstMealType)
+                    plannedMealTypes(firstMealType)
                 ) Then
                     Continue For
                 End If
@@ -501,7 +604,7 @@ Public NotInheritable Class WeekPlanGenerator
                 StringComparer.OrdinalIgnoreCase
             )
 
-            For mealTypeIndex As Integer = 0 To MealTypes.Length - 1
+            For mealTypeIndex As Integer = 0 To assignments.GetLength(1) - 1
                 Dim meal = assignments(dayIndex, mealTypeIndex)
                 dailyCalories(dayIndex) += meal.Calory
                 randomPreferenceCost += randomCosts(
@@ -516,7 +619,10 @@ Public NotInheritable Class WeekPlanGenerator
                 Next
             Next
             Dim currentDayIndex = dayIndex
-            duplicateMealPenalty += Enumerable.Range(0, MealTypes.Length).
+            duplicateMealPenalty += Enumerable.Range(
+                0,
+                assignments.GetLength(1)
+            ).
                 Select(Function(index) assignments(currentDayIndex, index)).
                 GroupBy(Function(meal) meal).
                 Sum(Function(group) Math.Max(0, group.Count() - 1))
@@ -649,6 +755,7 @@ Public NotInheritable Class WeekPlanGenerator
     Private Shared Function CreatePlan(
         assignments As Meal(,),
         guaranteedMeals As List(Of Meal),
+        plannedMealTypes As List(Of String),
         targets As Dictionary(Of String, Double),
         generationMode As WeekPlanGenerationMode,
         randomSeed As Integer
@@ -656,6 +763,7 @@ Public NotInheritable Class WeekPlanGenerator
         Dim plan As New WeeklyPlan With {
             .GeneratedAt = DateTime.Now,
             .GenerationMode = generationMode.ToString(),
+            .PlannedMealTypes = New List(Of String)(plannedMealTypes),
             .RandomSeed = randomSeed,
             .TargetDailyIntakes = New Dictionary(Of String, Double)(
                 targets,
@@ -675,11 +783,11 @@ Public NotInheritable Class WeekPlanGenerator
             Dim day As New PlannedDay With {
                 .Name = DayNames(dayIndex)
             }
-            For mealTypeIndex As Integer = 0 To MealTypes.Length - 1
+            For mealTypeIndex As Integer = 0 To plannedMealTypes.Count - 1
                 Dim meal = assignments(dayIndex, mealTypeIndex)
                 day.Meals.Add(
                     New PlannedMeal With {
-                        .MealType = MealTypes(mealTypeIndex),
+                        .MealType = plannedMealTypes(mealTypeIndex),
                         .MealName = meal.Name,
                         .RecipeUrl = meal.Recipe,
                         .Calories = meal.Calory,

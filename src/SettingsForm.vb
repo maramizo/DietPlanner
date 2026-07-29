@@ -250,7 +250,7 @@ Public Class SettingsForm
         _previewInput.Size = New Size(302, 23)
         _previewInput.Text = "Weekly meal plan"
 
-        Dim rowNames = {"Breakfast", "Lunch", "Dinner"}
+        Dim rowNames = {"Breakfast", "Brunch", "Lunch"}
         For index As Integer = 0 To rowNames.Length - 1
             Dim row As New Panel With {
                 .BorderStyle = BorderStyle.FixedSingle,

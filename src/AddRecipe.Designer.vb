@@ -213,7 +213,7 @@ Partial Class AddRecipe
         '
         MealTypeCheckedListBox.CheckOnClick = True
         MealTypeCheckedListBox.FormattingEnabled = True
-        MealTypeCheckedListBox.Items.AddRange(New Object() {"Breakfast", "Lunch", "Brunch", "Dinner", "Snack"})
+        MealTypeCheckedListBox.Items.AddRange(New Object() {"Breakfast", "Brunch", "Lunch", "Dinner", "Snack"})
         MealTypeCheckedListBox.Location = New Point(121, 247)
         MealTypeCheckedListBox.Name = "MealTypeCheckedListBox"
         MealTypeCheckedListBox.Size = New Size(233, 114)

@@ -19,8 +19,8 @@ Partial Class RecipeCatalog
         NameColumn = New DataGridViewTextBoxColumn()
         CaloriesColumn = New DataGridViewTextBoxColumn()
         BreakfastColumn = New DataGridViewCheckBoxColumn()
-        LunchColumn = New DataGridViewCheckBoxColumn()
         BrunchColumn = New DataGridViewCheckBoxColumn()
+        LunchColumn = New DataGridViewCheckBoxColumn()
         DinnerColumn = New DataGridViewCheckBoxColumn()
         SnackColumn = New DataGridViewCheckBoxColumn()
         StatusColumn = New DataGridViewTextBoxColumn()
@@ -41,8 +41,8 @@ Partial Class RecipeCatalog
             NameColumn,
             CaloriesColumn,
             BreakfastColumn,
-            LunchColumn,
             BrunchColumn,
+            LunchColumn,
             DinnerColumn,
             SnackColumn,
             StatusColumn
@@ -74,17 +74,17 @@ Partial Class RecipeCatalog
         BreakfastColumn.HeaderText = "Breakfast"
         BreakfastColumn.Name = "BreakfastColumn"
         '
-        ' LunchColumn
-        '
-        LunchColumn.FillWeight = 9.0!
-        LunchColumn.HeaderText = "Lunch"
-        LunchColumn.Name = "LunchColumn"
-        '
         ' BrunchColumn
         '
         BrunchColumn.FillWeight = 9.0!
         BrunchColumn.HeaderText = "Brunch"
         BrunchColumn.Name = "BrunchColumn"
+        '
+        ' LunchColumn
+        '
+        LunchColumn.FillWeight = 9.0!
+        LunchColumn.HeaderText = "Lunch"
+        LunchColumn.Name = "LunchColumn"
         '
         ' DinnerColumn
         '
@@ -156,8 +156,8 @@ Partial Class RecipeCatalog
     Friend WithEvents NameColumn As DataGridViewTextBoxColumn
     Friend WithEvents CaloriesColumn As DataGridViewTextBoxColumn
     Friend WithEvents BreakfastColumn As DataGridViewCheckBoxColumn
-    Friend WithEvents LunchColumn As DataGridViewCheckBoxColumn
     Friend WithEvents BrunchColumn As DataGridViewCheckBoxColumn
+    Friend WithEvents LunchColumn As DataGridViewCheckBoxColumn
     Friend WithEvents DinnerColumn As DataGridViewCheckBoxColumn
     Friend WithEvents SnackColumn As DataGridViewCheckBoxColumn
     Friend WithEvents StatusColumn As DataGridViewTextBoxColumn

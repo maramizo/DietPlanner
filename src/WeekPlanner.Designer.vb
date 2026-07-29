@@ -19,6 +19,8 @@ Partial Class WeekPlanner
         SelectedOnlyRadioButton = New RadioButton()
         FullCatalogRadioButton = New RadioButton()
         GenerationModeHelpLabel = New Label()
+        PlannedMealsGroupBox = New GroupBox()
+        PlannedMealTypesCheckedListBox = New CheckedListBox()
         SelectedRecipesLabel = New Label()
         SelectedRecipesCheckedListBox = New CheckedListBox()
         SelectAllButton = New Button()
@@ -29,8 +31,8 @@ Partial Class WeekPlanner
         PlanDataGrid = New DataGridView()
         DayColumn = New DataGridViewTextBoxColumn()
         BreakfastColumn = New DataGridViewTextBoxColumn()
-        LunchColumn = New DataGridViewTextBoxColumn()
         BrunchColumn = New DataGridViewTextBoxColumn()
+        LunchColumn = New DataGridViewTextBoxColumn()
         DinnerColumn = New DataGridViewTextBoxColumn()
         SnackColumn = New DataGridViewTextBoxColumn()
         CaloriesColumn = New DataGridViewTextBoxColumn()
@@ -44,6 +46,7 @@ Partial Class WeekPlanner
         PercentColumn = New DataGridViewTextBoxColumn()
         CloseButton = New Button()
         GenerationModeGroupBox.SuspendLayout()
+        PlannedMealsGroupBox.SuspendLayout()
         CType(PlanDataGrid, ComponentModel.ISupportInitialize).BeginInit()
         CType(SummaryDataGrid, ComponentModel.ISupportInitialize).BeginInit()
         SuspendLayout()
@@ -90,13 +93,39 @@ Partial Class WeekPlanner
         GenerationModeHelpLabel.TabIndex = 2
         GenerationModeHelpLabel.Text = "The plan uses only checked recipes; each one appears at least once."
         '
+        ' PlannedMealsGroupBox
+        '
+        PlannedMealsGroupBox.Controls.Add(PlannedMealTypesCheckedListBox)
+        PlannedMealsGroupBox.Location = New Point(20, 145)
+        PlannedMealsGroupBox.Name = "PlannedMealsGroupBox"
+        PlannedMealsGroupBox.Size = New Size(290, 153)
+        PlannedMealsGroupBox.TabIndex = 1
+        PlannedMealsGroupBox.TabStop = False
+        PlannedMealsGroupBox.Text = "Meals to plan"
+        '
+        ' PlannedMealTypesCheckedListBox
+        '
+        PlannedMealTypesCheckedListBox.CheckOnClick = True
+        PlannedMealTypesCheckedListBox.FormattingEnabled = True
+        PlannedMealTypesCheckedListBox.Items.AddRange(New Object() {
+            "Breakfast",
+            "Brunch",
+            "Lunch",
+            "Dinner",
+            "Snack"
+        })
+        PlannedMealTypesCheckedListBox.Location = New Point(12, 22)
+        PlannedMealTypesCheckedListBox.Name = "PlannedMealTypesCheckedListBox"
+        PlannedMealTypesCheckedListBox.Size = New Size(266, 118)
+        PlannedMealTypesCheckedListBox.TabIndex = 0
+        '
         ' SelectedRecipesLabel
         '
         SelectedRecipesLabel.AutoSize = True
-        SelectedRecipesLabel.Location = New Point(20, 145)
+        SelectedRecipesLabel.Location = New Point(20, 310)
         SelectedRecipesLabel.Name = "SelectedRecipesLabel"
         SelectedRecipesLabel.Size = New Size(238, 15)
-        SelectedRecipesLabel.TabIndex = 1
+        SelectedRecipesLabel.TabIndex = 2
         SelectedRecipesLabel.Text = "Recipes to use (each appears at least once)"
         '
         ' SelectedRecipesCheckedListBox
@@ -105,10 +134,10 @@ Partial Class WeekPlanner
         SelectedRecipesCheckedListBox.CheckOnClick = True
         SelectedRecipesCheckedListBox.FormattingEnabled = True
         SelectedRecipesCheckedListBox.HorizontalScrollbar = True
-        SelectedRecipesCheckedListBox.Location = New Point(20, 170)
+        SelectedRecipesCheckedListBox.Location = New Point(20, 335)
         SelectedRecipesCheckedListBox.Name = "SelectedRecipesCheckedListBox"
-        SelectedRecipesCheckedListBox.Size = New Size(290, 418)
-        SelectedRecipesCheckedListBox.TabIndex = 2
+        SelectedRecipesCheckedListBox.Size = New Size(290, 253)
+        SelectedRecipesCheckedListBox.TabIndex = 3
         '
         ' SelectAllButton
         '
@@ -116,7 +145,7 @@ Partial Class WeekPlanner
         SelectAllButton.Location = New Point(20, 598)
         SelectAllButton.Name = "SelectAllButton"
         SelectAllButton.Size = New Size(135, 26)
-        SelectAllButton.TabIndex = 3
+        SelectAllButton.TabIndex = 4
         SelectAllButton.Text = "Select All"
         SelectAllButton.UseVisualStyleBackColor = True
         '
@@ -126,7 +155,7 @@ Partial Class WeekPlanner
         ClearSelectionButton.Location = New Point(175, 598)
         ClearSelectionButton.Name = "ClearSelectionButton"
         ClearSelectionButton.Size = New Size(135, 26)
-        ClearSelectionButton.TabIndex = 4
+        ClearSelectionButton.TabIndex = 5
         ClearSelectionButton.Text = "Clear Selection"
         ClearSelectionButton.UseVisualStyleBackColor = True
         '
@@ -136,18 +165,17 @@ Partial Class WeekPlanner
         GenerateButton.Location = New Point(20, 634)
         GenerateButton.Name = "GenerateButton"
         GenerateButton.Size = New Size(290, 30)
-        GenerateButton.TabIndex = 5
+        GenerateButton.TabIndex = 6
         GenerateButton.Text = "Generate / Shuffle and Save Week"
         GenerateButton.UseVisualStyleBackColor = True
         '
         ' StatusLabel
         '
         StatusLabel.Anchor = AnchorStyles.Bottom Or AnchorStyles.Left
-        StatusLabel.AutoEllipsis = True
         StatusLabel.Location = New Point(20, 674)
         StatusLabel.Name = "StatusLabel"
         StatusLabel.Size = New Size(290, 34)
-        StatusLabel.TabIndex = 6
+        StatusLabel.TabIndex = 7
         StatusLabel.Text = "Select recipes, then generate a balanced seven-day plan."
         '
         ' PlanLabel
@@ -156,7 +184,7 @@ Partial Class WeekPlanner
         PlanLabel.Location = New Point(335, 20)
         PlanLabel.Name = "PlanLabel"
         PlanLabel.Size = New Size(77, 15)
-        PlanLabel.TabIndex = 7
+        PlanLabel.TabIndex = 8
         PlanLabel.Text = "Seven-day plan"
         '
         ' PlanDataGrid
@@ -169,8 +197,8 @@ Partial Class WeekPlanner
         PlanDataGrid.Columns.AddRange(New DataGridViewColumn() {
             DayColumn,
             BreakfastColumn,
-            LunchColumn,
             BrunchColumn,
+            LunchColumn,
             DinnerColumn,
             SnackColumn,
             CaloriesColumn,
@@ -183,7 +211,7 @@ Partial Class WeekPlanner
         PlanDataGrid.RowHeadersVisible = False
         PlanDataGrid.SelectionMode = DataGridViewSelectionMode.CellSelect
         PlanDataGrid.Size = New Size(925, 365)
-        PlanDataGrid.TabIndex = 8
+        PlanDataGrid.TabIndex = 9
         PlanDataGrid.DefaultCellStyle.WrapMode = DataGridViewTriState.True
         '
         ' DayColumn
@@ -200,19 +228,19 @@ Partial Class WeekPlanner
         BreakfastColumn.Name = "BreakfastColumn"
         BreakfastColumn.ReadOnly = True
         '
-        ' LunchColumn
-        '
-        LunchColumn.FillWeight = 16.0!
-        LunchColumn.HeaderText = "Lunch"
-        LunchColumn.Name = "LunchColumn"
-        LunchColumn.ReadOnly = True
-        '
         ' BrunchColumn
         '
         BrunchColumn.FillWeight = 16.0!
         BrunchColumn.HeaderText = "Brunch"
         BrunchColumn.Name = "BrunchColumn"
         BrunchColumn.ReadOnly = True
+        '
+        ' LunchColumn
+        '
+        LunchColumn.FillWeight = 16.0!
+        LunchColumn.HeaderText = "Lunch"
+        LunchColumn.Name = "LunchColumn"
+        LunchColumn.ReadOnly = True
         '
         ' DinnerColumn
         '
@@ -249,7 +277,7 @@ Partial Class WeekPlanner
         BalanceLabel.Location = New Point(335, 420)
         BalanceLabel.Name = "BalanceLabel"
         BalanceLabel.Size = New Size(925, 34)
-        BalanceLabel.TabIndex = 9
+        BalanceLabel.TabIndex = 10
         BalanceLabel.Text = "Generate a plan to see its day-to-day balance."
         '
         ' SummaryLabel
@@ -258,7 +286,7 @@ Partial Class WeekPlanner
         SummaryLabel.Location = New Point(335, 460)
         SummaryLabel.Name = "SummaryLabel"
         SummaryLabel.Size = New Size(198, 15)
-        SummaryLabel.TabIndex = 10
+        SummaryLabel.TabIndex = 11
         SummaryLabel.Text = "Weekly recommended-intake summary"
         '
         ' SummaryDataGrid
@@ -279,7 +307,7 @@ Partial Class WeekPlanner
         SummaryDataGrid.ReadOnly = True
         SummaryDataGrid.RowHeadersVisible = False
         SummaryDataGrid.Size = New Size(925, 179)
-        SummaryDataGrid.TabIndex = 11
+        SummaryDataGrid.TabIndex = 12
         '
         ' NutrientColumn
         '
@@ -311,7 +339,7 @@ Partial Class WeekPlanner
         CloseButton.Location = New Point(1135, 680)
         CloseButton.Name = "CloseButton"
         CloseButton.Size = New Size(125, 28)
-        CloseButton.TabIndex = 12
+        CloseButton.TabIndex = 13
         CloseButton.Text = "Close"
         CloseButton.UseVisualStyleBackColor = True
         '
@@ -320,6 +348,7 @@ Partial Class WeekPlanner
         AutoScaleDimensions = New SizeF(7.0!, 15.0!)
         AutoScaleMode = AutoScaleMode.Font
         ClientSize = New Size(1280, 728)
+        Controls.Add(PlannedMealsGroupBox)
         Controls.Add(GenerationModeGroupBox)
         Controls.Add(CloseButton)
         Controls.Add(SummaryDataGrid)
@@ -339,6 +368,7 @@ Partial Class WeekPlanner
         Text = "Plan My Week"
         GenerationModeGroupBox.ResumeLayout(False)
         GenerationModeGroupBox.PerformLayout()
+        PlannedMealsGroupBox.ResumeLayout(False)
         CType(PlanDataGrid, ComponentModel.ISupportInitialize).EndInit()
         CType(SummaryDataGrid, ComponentModel.ISupportInitialize).EndInit()
         ResumeLayout(False)
@@ -349,6 +379,8 @@ Partial Class WeekPlanner
     Friend WithEvents SelectedOnlyRadioButton As RadioButton
     Friend WithEvents FullCatalogRadioButton As RadioButton
     Friend WithEvents GenerationModeHelpLabel As Label
+    Friend WithEvents PlannedMealsGroupBox As GroupBox
+    Friend WithEvents PlannedMealTypesCheckedListBox As CheckedListBox
     Friend WithEvents SelectedRecipesLabel As Label
     Friend WithEvents SelectedRecipesCheckedListBox As CheckedListBox
     Friend WithEvents SelectAllButton As Button
@@ -359,8 +391,8 @@ Partial Class WeekPlanner
     Friend WithEvents PlanDataGrid As DataGridView
     Friend WithEvents DayColumn As DataGridViewTextBoxColumn
     Friend WithEvents BreakfastColumn As DataGridViewTextBoxColumn
-    Friend WithEvents LunchColumn As DataGridViewTextBoxColumn
     Friend WithEvents BrunchColumn As DataGridViewTextBoxColumn
+    Friend WithEvents LunchColumn As DataGridViewTextBoxColumn
     Friend WithEvents DinnerColumn As DataGridViewTextBoxColumn
     Friend WithEvents SnackColumn As DataGridViewTextBoxColumn
     Friend WithEvents CaloriesColumn As DataGridViewTextBoxColumn

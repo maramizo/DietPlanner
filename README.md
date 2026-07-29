@@ -34,11 +34,14 @@ modes:
 2. Generate freely from the full catalog while guaranteeing any checked recipes
    at least once.
 
-All five meal-type slots are filled each day. Each click creates a fresh randomized
-shuffle, then balances the saved recommended daily nutrient targets across the
-week while penalizing large day-to-day calorie or nutrient variance. The generated
-plan, mode, random seed, guaranteed recipes, and target snapshot are saved in
-`data/week-plan.json`.
+The planner lets the user choose any subset of Breakfast, Brunch, Lunch, Dinner,
+and Snack; all five are selected by default for backwards compatibility. Only
+the chosen slots are generated and validated, so a Breakfast-and-Dinner plan has
+14 weekly slots rather than 35. Each click creates a fresh randomized shuffle,
+then balances the saved recommended daily nutrient targets across the week while
+penalizing large day-to-day calorie or nutrient variance. The generated plan,
+selected meal types, mode, random seed, guaranteed recipes, and target snapshot
+are saved in `data/week-plan.json`.
 
 Settings includes four persistent themes with live preview: Fresh Sage, Coastal
 Blue, Berry Bloom, and Midnight Kitchen. It also provides an installed-font
