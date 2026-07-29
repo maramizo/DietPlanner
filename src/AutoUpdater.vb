@@ -53,6 +53,7 @@ Public NotInheritable Class AutoUpdater
                 ValidateRelease(stagingDirectory)
 
                 Dim updaterScript = WriteUpdaterScript(updateRoot)
+                RecordPendingRelease(release.TagName)
                 StartUpdater(
                     updaterScript,
                     stagingDirectory,
@@ -369,10 +370,19 @@ Public NotInheritable Class AutoUpdater
                 "        }",
                 "        Copy-Item -LiteralPath $sourceFile.FullName -Destination $destination -Force",
                 "    }",
+                "    $sourceAssembly = Join-Path $sourceRoot 'DietPlanner.dll'",
+                "    $targetAssembly = Join-Path $targetRoot 'DietPlanner.dll'",
+                "    $sourceHash = (Get-FileHash -LiteralPath $sourceAssembly -Algorithm SHA256).Hash",
+                "    $targetHash = (Get-FileHash -LiteralPath $targetAssembly -Algorithm SHA256).Hash",
+                "    if ($sourceHash -ne $targetHash) { throw 'The installed application did not match the staged update.' }",
                 "    Remove-Item -LiteralPath $FailureMarkerPath -Force -ErrorAction SilentlyContinue",
                 "    Start-Process -FilePath $ExecutablePath -WorkingDirectory $targetRoot",
                 "} catch {",
                 "    $updateError = $_.Exception.ToString()",
+                "    try {",
+                "        New-Item -ItemType Directory -Path (Split-Path -Parent $FailureMarkerPath) -Force | Out-Null",
+                "        [IO.File]::WriteAllText($FailureMarkerPath, $ReleaseTag + [Environment]::NewLine + $updateError)",
+                "    } catch { }",
                 "    try {",
                 "        if (Test-Path -LiteralPath $BackupDirectory) {",
                 "            foreach ($backupFile in Get-ChildItem -LiteralPath $BackupDirectory -File -Recurse -Force) {",
@@ -385,8 +395,6 @@ Public NotInheritable Class AutoUpdater
                 "        foreach ($createdFile in $createdFiles) {",
                 "            Remove-Item -LiteralPath $createdFile -Force -ErrorAction SilentlyContinue",
                 "        }",
-                "        New-Item -ItemType Directory -Path (Split-Path -Parent $FailureMarkerPath) -Force | Out-Null",
-                "        [IO.File]::WriteAllText($FailureMarkerPath, $ReleaseTag + [Environment]::NewLine + $updateError)",
                 "    } catch { }",
                 "    try { Start-Process -FilePath $ExecutablePath -WorkingDirectory $targetRoot } catch { }",
                 "}"
@@ -461,6 +469,17 @@ Public NotInheritable Class AutoUpdater
     End Function
 
     Private Shared Sub RecordFailedRelease(releaseTag As String, message As String)
+        RecordReleaseMarker(releaseTag, message)
+    End Sub
+
+    Private Shared Sub RecordPendingRelease(releaseTag As String)
+        RecordReleaseMarker(
+            releaseTag,
+            "The update installer was started but has not confirmed completion."
+        )
+    End Sub
+
+    Private Shared Sub RecordReleaseMarker(releaseTag As String, message As String)
         Try
             Dim markerPath = GetFailureMarkerPath()
             Directory.CreateDirectory(Path.GetDirectoryName(markerPath))

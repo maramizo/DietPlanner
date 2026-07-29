@@ -75,4 +75,7 @@ newer version is available, DietPlanner verifies the release's SHA-256 checksum,
 stages it, closes, replaces the application files, and restarts automatically.
 Saved files in the application's `data` directory are preserved. If replacement
 fails, the updater restores its backup and does not retry that same release on
-every launch.
+every launch. DietPlanner is single-instance, records an update as pending before
+the external installer starts, and verifies the installed application assembly
+against the staged copy before restarting. This prevents another open instance
+or a rollback failure from creating an update/restart loop.
