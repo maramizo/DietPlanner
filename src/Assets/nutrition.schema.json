@@ -7,6 +7,9 @@
     "Calories": {
       "type": "integer"
     },
+    "Servings": {
+      "type": "integer"
+    },
     "MealTypes": {
       "type": "array",
       "items": {
@@ -77,6 +80,9 @@
       ],
       "additionalProperties": false
     },
+    "Notes": {
+      "type": "string"
+    },
     "Nutritionals": {
       "type": "object",
       "properties": {
@@ -141,10 +147,12 @@
   "required": [
     "Name",
     "Calories",
+    "Servings",
     "MealTypes",
     "Times",
     "Ingredients",
     "PreparationMethod",
+    "Notes",
     "Nutritionals"
   ],
   "additionalProperties": false

@@ -12,6 +12,21 @@
         PrepTime.Text = meal.PrepTime & " minutes"
         CookTime.Text = meal.CookTime & " minutes"
         TotalTime.Text = meal.TotalTime & " minutes"
+        ServingsValueLabel.Text = If(
+            meal.Servings > 0,
+            meal.Servings.ToString(),
+            "Unknown"
+        )
+        CaloriesPerServingValueLabel.Text = If(
+            meal.Servings > 0,
+            meal.Calory & " calories",
+            "Unknown"
+        )
+        BatchCaloriesValueLabel.Text = If(
+            meal.Servings > 0,
+            (CLng(meal.Calory) * meal.Servings).ToString("N0") & " calories",
+            "Unknown"
+        )
         MealTypesLabel.Text = If(
             meal.MealTypes Is Nothing OrElse meal.MealTypes.Count = 0,
             "Not categorized",
@@ -38,6 +53,15 @@
                 "Not available"
             ),
             meal.PreparationMethod
+        )
+        NotesTextBox.Text = If(
+            String.IsNullOrWhiteSpace(meal.Notes),
+            If(
+                meal.IsAdvancedScrapeUnavailable(),
+                "Source unavailable. Automatic extraction will not be retried.",
+                "No storage, freezing, or recipe variation notes were provided."
+            ),
+            meal.Notes
         )
     End Sub
 

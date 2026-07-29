@@ -29,6 +29,8 @@ Partial Class AddRecipe
         Label2 = New Label()
         NameTextBox = New TextBox()
         CaloriesTextBox = New TextBox()
+        ServingsLabel = New Label()
+        ServingsTextBox = New TextBox()
         SaveButton = New Button()
         CancelButton = New Button()
         RecipeTextBox = New TextBox()
@@ -46,6 +48,8 @@ Partial Class AddRecipe
         IngredientAmountColumn = New DataGridViewTextBoxColumn()
         PreparationMethodLabel = New Label()
         PreparationMethodTextBox = New TextBox()
+        NotesLabel = New Label()
+        NotesTextBox = New TextBox()
         CType(NutritionalsDataGrid, ComponentModel.ISupportInitialize).BeginInit()
         CType(IngredientsDataGrid, ComponentModel.ISupportInitialize).BeginInit()
         SuspendLayout()
@@ -56,9 +60,9 @@ Partial Class AddRecipe
         NutritionalsDataGrid.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill
         NutritionalsDataGrid.ColumnHeadersHeightSizeMode = DataGridViewColumnHeadersHeightSizeMode.AutoSize
         NutritionalsDataGrid.Columns.AddRange(New DataGridViewColumn() {Nutrition, Value})
-        NutritionalsDataGrid.Location = New Point(28, 316)
+        NutritionalsDataGrid.Location = New Point(28, 372)
         NutritionalsDataGrid.Name = "NutritionalsDataGrid"
-        NutritionalsDataGrid.Size = New Size(328, 290)
+        NutritionalsDataGrid.Size = New Size(328, 234)
         NutritionalsDataGrid.TabIndex = 0
         '
         ' Nutrition
@@ -85,9 +89,9 @@ Partial Class AddRecipe
         Label2.AutoSize = True
         Label2.Location = New Point(28, 62)
         Label2.Name = "Label2"
-        Label2.Size = New Size(49, 15)
+        Label2.Size = New Size(99, 15)
         Label2.TabIndex = 2
-        Label2.Text = "Calories"
+        Label2.Text = "Calories / Serving"
         '
         ' NameTextBox
         '
@@ -98,10 +102,26 @@ Partial Class AddRecipe
         '
         ' CaloriesTextBox
         '
-        CaloriesTextBox.Location = New Point(121, 59)
+        CaloriesTextBox.Location = New Point(145, 59)
         CaloriesTextBox.Name = "CaloriesTextBox"
-        CaloriesTextBox.Size = New Size(233, 23)
+        CaloriesTextBox.Size = New Size(209, 23)
         CaloriesTextBox.TabIndex = 4
+        '
+        ' ServingsLabel
+        '
+        ServingsLabel.AutoSize = True
+        ServingsLabel.Location = New Point(28, 98)
+        ServingsLabel.Name = "ServingsLabel"
+        ServingsLabel.Size = New Size(50, 15)
+        ServingsLabel.TabIndex = 20
+        ServingsLabel.Text = "Servings"
+        '
+        ' ServingsTextBox
+        '
+        ServingsTextBox.Location = New Point(121, 95)
+        ServingsTextBox.Name = "ServingsTextBox"
+        ServingsTextBox.Size = New Size(233, 23)
+        ServingsTextBox.TabIndex = 5
         '
         ' SaveButton
         '
@@ -109,7 +129,7 @@ Partial Class AddRecipe
         SaveButton.Location = New Point(28, 622)
         SaveButton.Name = "SaveButton"
         SaveButton.Size = New Size(108, 23)
-        SaveButton.TabIndex = 5
+        SaveButton.TabIndex = 22
         SaveButton.Text = "Save"
         SaveButton.UseVisualStyleBackColor = True
         '
@@ -119,21 +139,21 @@ Partial Class AddRecipe
         CancelButton.Location = New Point(712, 622)
         CancelButton.Name = "CancelButton"
         CancelButton.Size = New Size(108, 23)
-        CancelButton.TabIndex = 6
+        CancelButton.TabIndex = 23
         CancelButton.Text = "Cancel"
         CancelButton.UseVisualStyleBackColor = True
         '
         ' RecipeTextBox
         '
-        RecipeTextBox.Location = New Point(121, 98)
+        RecipeTextBox.Location = New Point(121, 134)
         RecipeTextBox.Name = "RecipeTextBox"
         RecipeTextBox.Size = New Size(152, 23)
-        RecipeTextBox.TabIndex = 8
+        RecipeTextBox.TabIndex = 6
         '
         ' Label3
         '
         Label3.AutoSize = True
-        Label3.Location = New Point(28, 101)
+        Label3.Location = New Point(28, 137)
         Label3.Name = "Label3"
         Label3.Size = New Size(67, 15)
         Label3.TabIndex = 7
@@ -141,15 +161,15 @@ Partial Class AddRecipe
         '
         ' PrepTimeTextBox
         '
-        PrepTimeTextBox.Location = New Point(121, 137)
+        PrepTimeTextBox.Location = New Point(121, 173)
         PrepTimeTextBox.Name = "PrepTimeTextBox"
         PrepTimeTextBox.Size = New Size(233, 23)
-        PrepTimeTextBox.TabIndex = 10
+        PrepTimeTextBox.TabIndex = 8
         '
         ' PrepTimeLabel
         '
         PrepTimeLabel.AutoSize = True
-        PrepTimeLabel.Location = New Point(28, 140)
+        PrepTimeLabel.Location = New Point(28, 176)
         PrepTimeLabel.Name = "PrepTimeLabel"
         PrepTimeLabel.Size = New Size(60, 15)
         PrepTimeLabel.TabIndex = 9
@@ -157,15 +177,15 @@ Partial Class AddRecipe
         '
         ' CookTimeTextBox
         '
-        CookTimeTextBox.Location = New Point(121, 173)
+        CookTimeTextBox.Location = New Point(121, 209)
         CookTimeTextBox.Name = "CookTimeTextBox"
         CookTimeTextBox.Size = New Size(233, 23)
-        CookTimeTextBox.TabIndex = 12
+        CookTimeTextBox.TabIndex = 10
         '
         ' CookTime
         '
         CookTime.AutoSize = True
-        CookTime.Location = New Point(28, 176)
+        CookTime.Location = New Point(28, 212)
         CookTime.Name = "CookTime"
         CookTime.Size = New Size(64, 15)
         CookTime.TabIndex = 11
@@ -173,17 +193,17 @@ Partial Class AddRecipe
         '
         ' ScrapeButton
         '
-        ScrapeButton.Location = New Point(281, 98)
+        ScrapeButton.Location = New Point(281, 134)
         ScrapeButton.Name = "ScrapeButton"
         ScrapeButton.Size = New Size(75, 23)
-        ScrapeButton.TabIndex = 13
+        ScrapeButton.TabIndex = 7
         ScrapeButton.Text = "Scrape"
         ScrapeButton.UseVisualStyleBackColor = True
         '
         ' MealTypeLabel
         '
         MealTypeLabel.AutoSize = True
-        MealTypeLabel.Location = New Point(28, 215)
+        MealTypeLabel.Location = New Point(28, 251)
         MealTypeLabel.Name = "MealTypeLabel"
         MealTypeLabel.Size = New Size(60, 15)
         MealTypeLabel.TabIndex = 14
@@ -194,10 +214,10 @@ Partial Class AddRecipe
         MealTypeCheckedListBox.CheckOnClick = True
         MealTypeCheckedListBox.FormattingEnabled = True
         MealTypeCheckedListBox.Items.AddRange(New Object() {"Breakfast", "Lunch", "Brunch", "Dinner", "Snack"})
-        MealTypeCheckedListBox.Location = New Point(121, 211)
+        MealTypeCheckedListBox.Location = New Point(121, 247)
         MealTypeCheckedListBox.Name = "MealTypeCheckedListBox"
-        MealTypeCheckedListBox.Size = New Size(233, 94)
-        MealTypeCheckedListBox.TabIndex = 15
+        MealTypeCheckedListBox.Size = New Size(233, 114)
+        MealTypeCheckedListBox.TabIndex = 12
         '
         ' IngredientsLabel
         '
@@ -216,7 +236,7 @@ Partial Class AddRecipe
         IngredientsDataGrid.Columns.AddRange(New DataGridViewColumn() {IngredientNameColumn, IngredientAmountColumn})
         IngredientsDataGrid.Location = New Point(390, 45)
         IngredientsDataGrid.Name = "IngredientsDataGrid"
-        IngredientsDataGrid.Size = New Size(430, 240)
+        IngredientsDataGrid.Size = New Size(430, 180)
         IngredientsDataGrid.TabIndex = 17
         '
         ' IngredientNameColumn
@@ -234,7 +254,7 @@ Partial Class AddRecipe
         ' PreparationMethodLabel
         '
         PreparationMethodLabel.AutoSize = True
-        PreparationMethodLabel.Location = New Point(390, 305)
+        PreparationMethodLabel.Location = New Point(390, 245)
         PreparationMethodLabel.Name = "PreparationMethodLabel"
         PreparationMethodLabel.Size = New Size(118, 15)
         PreparationMethodLabel.TabIndex = 18
@@ -243,19 +263,43 @@ Partial Class AddRecipe
         ' PreparationMethodTextBox
         '
         PreparationMethodTextBox.AcceptsReturn = True
-        PreparationMethodTextBox.Anchor = AnchorStyles.Top Or AnchorStyles.Bottom Or AnchorStyles.Left Or AnchorStyles.Right
-        PreparationMethodTextBox.Location = New Point(390, 328)
+        PreparationMethodTextBox.Anchor = AnchorStyles.Top Or AnchorStyles.Left Or AnchorStyles.Right
+        PreparationMethodTextBox.Location = New Point(390, 268)
         PreparationMethodTextBox.Multiline = True
         PreparationMethodTextBox.Name = "PreparationMethodTextBox"
         PreparationMethodTextBox.ScrollBars = ScrollBars.Vertical
-        PreparationMethodTextBox.Size = New Size(430, 278)
+        PreparationMethodTextBox.Size = New Size(430, 178)
         PreparationMethodTextBox.TabIndex = 19
+        '
+        ' NotesLabel
+        '
+        NotesLabel.AutoSize = True
+        NotesLabel.Location = New Point(390, 466)
+        NotesLabel.Name = "NotesLabel"
+        NotesLabel.Size = New Size(205, 15)
+        NotesLabel.TabIndex = 20
+        NotesLabel.Text = "Notes (Storage, Freezing, Variations)"
+        '
+        ' NotesTextBox
+        '
+        NotesTextBox.AcceptsReturn = True
+        NotesTextBox.Anchor = AnchorStyles.Top Or AnchorStyles.Bottom Or AnchorStyles.Left Or AnchorStyles.Right
+        NotesTextBox.Location = New Point(390, 489)
+        NotesTextBox.Multiline = True
+        NotesTextBox.Name = "NotesTextBox"
+        NotesTextBox.ScrollBars = ScrollBars.Vertical
+        NotesTextBox.Size = New Size(430, 117)
+        NotesTextBox.TabIndex = 21
         '
         ' AddRecipe
         '
         AutoScaleDimensions = New SizeF(7F, 15F)
         AutoScaleMode = AutoScaleMode.Font
         ClientSize = New Size(850, 660)
+        Controls.Add(ServingsTextBox)
+        Controls.Add(ServingsLabel)
+        Controls.Add(NotesTextBox)
+        Controls.Add(NotesLabel)
         Controls.Add(PreparationMethodTextBox)
         Controls.Add(PreparationMethodLabel)
         Controls.Add(IngredientsDataGrid)
@@ -293,6 +337,8 @@ Partial Class AddRecipe
     Friend WithEvents Label2 As Label
     Friend WithEvents NameTextBox As TextBox
     Friend WithEvents CaloriesTextBox As TextBox
+    Friend WithEvents ServingsLabel As Label
+    Friend WithEvents ServingsTextBox As TextBox
     Friend WithEvents SaveButton As Button
     Friend Shadows WithEvents CancelButton As Button
     Friend WithEvents RecipeTextBox As TextBox
@@ -310,4 +356,6 @@ Partial Class AddRecipe
     Friend WithEvents IngredientAmountColumn As DataGridViewTextBoxColumn
     Friend WithEvents PreparationMethodLabel As Label
     Friend WithEvents PreparationMethodTextBox As TextBox
+    Friend WithEvents NotesLabel As Label
+    Friend WithEvents NotesTextBox As TextBox
 End Class

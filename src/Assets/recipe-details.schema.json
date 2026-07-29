@@ -1,6 +1,12 @@
 {
   "type": "object",
   "properties": {
+    "Calories": {
+      "type": "integer"
+    },
+    "Servings": {
+      "type": "integer"
+    },
     "Ingredients": {
       "type": "array",
       "items": {
@@ -41,11 +47,17 @@
         "Cooking"
       ],
       "additionalProperties": false
+    },
+    "Notes": {
+      "type": "string"
     }
   },
   "required": [
+    "Calories",
+    "Servings",
     "Ingredients",
-    "PreparationMethod"
+    "PreparationMethod",
+    "Notes"
   ],
   "additionalProperties": false
 }

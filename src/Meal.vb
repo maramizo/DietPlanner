@@ -2,6 +2,7 @@
     Public Const AdvancedScrapePending As String = "Pending"
     Public Const AdvancedScrapeComplete As String = "Complete"
     Public Const AdvancedScrapeUnavailable As String = "Unavailable"
+    Public Const CurrentAdvancedScrapeVersion As Integer = 1
 
     Private Shared ReadOnly MealTypeOrder As String() = {
         "Breakfast",
@@ -15,14 +16,17 @@
     Public Property Calory As Integer
     Public Property Nutritionals As Dictionary(Of String, Double)
     Public Property Recipe As String
+    Public Property Servings As Integer
     Public Property PrepTime As Integer
     Public Property CookTime As Integer
     Public Property TotalTime As Integer
     Public Property MealTypes As List(Of String)
     Public Property Ingredients As List(Of RecipeIngredient)
     Public Property PreparationMethod As String
+    Public Property Notes As String
     Public Property AdvancedScrapeStatus As String
     Public Property AdvancedScrapeNote As String
+    Public Property AdvancedScrapeVersion As Integer
 
     <Newtonsoft.Json.JsonConstructor>
     Public Sub New(
@@ -30,26 +34,32 @@
         calory As Integer,
         nutritionals As Dictionary(Of String, Double),
         recipe As String,
+        Optional servings As Integer = 0,
         Optional prepTime As Integer = 0,
         Optional cookTime As Integer = 0,
         Optional mealTypes As IEnumerable(Of String) = Nothing,
         Optional ingredients As IEnumerable(Of RecipeIngredient) = Nothing,
         Optional preparationMethod As String = Nothing,
+        Optional notes As String = Nothing,
         Optional advancedScrapeStatus As String = Nothing,
-        Optional advancedScrapeNote As String = Nothing
+        Optional advancedScrapeNote As String = Nothing,
+        Optional advancedScrapeVersion As Integer = 0
     )
         Me.Name = name
         Me.Calory = calory
         Me.Nutritionals = ParseNutritionals(nutritionals)
         Me.Recipe = recipe
+        Me.Servings = Math.Max(0, servings)
         Me.PrepTime = prepTime
         Me.CookTime = cookTime
         Me.TotalTime = prepTime + cookTime
         SetMealTypes(mealTypes)
         Me.Ingredients = NormalizeIngredients(ingredients)
         Me.PreparationMethod = If(preparationMethod, String.Empty).Trim()
+        Me.Notes = If(notes, String.Empty).Trim()
         Me.AdvancedScrapeStatus = NormalizeAdvancedScrapeStatus(advancedScrapeStatus)
         Me.AdvancedScrapeNote = If(advancedScrapeNote, String.Empty).Trim()
+        Me.AdvancedScrapeVersion = Math.Max(0, advancedScrapeVersion)
     End Sub
 
     Public Sub SetMealTypes(mealTypes As IEnumerable(Of String))
@@ -64,10 +74,21 @@
     End Function
 
     Public Function NeedsAdvancedScrape() As Boolean
-        Return String.Equals(
+        If String.Equals(
             AdvancedScrapeStatus,
             AdvancedScrapePending,
             StringComparison.Ordinal
+        ) Then
+            Return True
+        End If
+
+        Return String.Equals(
+            AdvancedScrapeStatus,
+            AdvancedScrapeComplete,
+            StringComparison.Ordinal
+        ) AndAlso (
+            AdvancedScrapeVersion < CurrentAdvancedScrapeVersion OrElse
+            Servings < 1
         )
     End Function
 
@@ -81,16 +102,33 @@
 
     Public Sub ApplyAdvancedDetails(details As AdvancedRecipeDetails)
         If details Is Nothing Then Throw New ArgumentNullException(NameOf(details))
+        If details.Servings < 1 Then
+            Throw New ArgumentOutOfRangeException(
+                NameOf(details),
+                "Serving count must be positive."
+            )
+        End If
+        If details.CaloriesPerServing < 0 Then
+            Throw New ArgumentOutOfRangeException(
+                NameOf(details),
+                "Calories per serving cannot be negative."
+            )
+        End If
 
         Ingredients = NormalizeIngredients(details.Ingredients)
         PreparationMethod = If(details.PreparationMethod, String.Empty).Trim()
+        Notes = If(details.Notes, String.Empty).Trim()
+        Servings = details.Servings
+        Calory = details.CaloriesPerServing
         AdvancedScrapeStatus = AdvancedScrapeComplete
         AdvancedScrapeNote = String.Empty
+        AdvancedScrapeVersion = CurrentAdvancedScrapeVersion
     End Sub
 
     Public Sub MarkAdvancedScrapeUnavailable(note As String)
         AdvancedScrapeStatus = AdvancedScrapeUnavailable
         AdvancedScrapeNote = If(note, String.Empty).Trim()
+        AdvancedScrapeVersion = CurrentAdvancedScrapeVersion
     End Sub
 
     Private Shared Function NormalizeMealTypes(mealTypes As IEnumerable(Of String)) As List(Of String)

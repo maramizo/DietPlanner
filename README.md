@@ -2,12 +2,22 @@
 Simple Diet Planner made with Visual Basic and Windows Forms for personal use.
 
 Recipe pages are parsed locally and sent to Codex CLI for structured nutrition and
-meal-type extraction, including ingredient amounts and preparation directions.
+meal-type extraction, including ingredient amounts, preparation directions, and
+focused notes for storage, freezing, reheating, make-ahead guidance, and recipe
+variations.
+Serving count is stored with each recipe, and scraped calories and nutrients are
+normalized to a per-serving basis. View Details also calculates total batch
+calories from the stored serving count without persisting a redundant total.
 DietPlanner installs the native Windows Codex CLI on demand when it is missing and
 uses the user's ChatGPT sign-in; no API-key file is needed. Existing recipes
 without meal types are categorized automatically on startup. Legacy recipes that
-do not yet have ingredients and preparation directions are also enriched from
-their saved source URL.
+do not yet have the current ingredients, preparation directions, and notes data
+are also enriched once from their saved source URL.
+
+Startup compatibility work fans out every recipe download and Codex extraction
+as an independent asynchronous task. Serving/calorie/ingredient/direction/note
+enrichment and meal-category migration run as separate flows at the same time,
+then save their results together after every task has completed.
 
 Every meal records its advanced-scrape status as `Pending`, `Complete`, or
 `Unavailable`. Clearly invalid, inaccessible, or incomplete recipe sources are

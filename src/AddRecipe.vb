@@ -41,8 +41,24 @@
         Dim nutritionals As New Dictionary(Of String, Double)
 
         'Check that all data is entered
-        If NameTextBox.Text = "" Or CaloriesTextBox.Text = "" Or RecipeTextBox.Text = "" Then
+        If NameTextBox.Text = "" Or
+            CaloriesTextBox.Text = "" Or
+            ServingsTextBox.Text = "" Or
+            RecipeTextBox.Text = "" Then
             MessageBox.Show("Please fill in all fields")
+            Return
+        End If
+
+        Dim caloriesPerServing As Integer
+        If Not Integer.TryParse(CaloriesTextBox.Text, caloriesPerServing) OrElse
+            caloriesPerServing < 0 Then
+            MessageBox.Show("Calories per serving must be a non-negative whole number.")
+            Return
+        End If
+
+        Dim servings As Integer
+        If Not Integer.TryParse(ServingsTextBox.Text, servings) OrElse servings < 1 Then
+            MessageBox.Show("Servings must be a positive whole number.")
             Return
         End If
 
@@ -96,14 +112,17 @@
         'Store meal
         Dim meal As New Meal(
             NameTextBox.Text,
-            CaloriesTextBox.Text,
+            caloriesPerServing,
             nutritionals,
             RecipeTextBox.Text,
+            servings,
             PrepTimeTextBox.Text,
             CookTimeTextBox.Text,
             mealTypes,
             ingredients,
-            PreparationMethodTextBox.Text
+            PreparationMethodTextBox.Text,
+            NotesTextBox.Text,
+            advancedScrapeVersion:=Meal.CurrentAdvancedScrapeVersion
         )
         Dim meals = MealRepository.LoadAll()
         meals.Add(meal)
@@ -125,6 +144,7 @@
 
             NameTextBox.Text = meal.Name
             CaloriesTextBox.Text = meal.Calory
+            ServingsTextBox.Text = meal.Servings
             PrepTimeTextBox.Text = meal.PrepTime
             CookTimeTextBox.Text = meal.CookTime
             For index As Integer = 0 To MealTypeCheckedListBox.Items.Count - 1
@@ -152,6 +172,7 @@
                 IngredientsDataGrid.Rows.Add(ingredient.Ingredient, ingredient.Amount)
             Next
             PreparationMethodTextBox.Text = meal.PreparationMethod
+            NotesTextBox.Text = meal.Notes
         Catch ex As Exception
             MessageBox.Show(
                 "Could not extract recipe details." & Environment.NewLine & Environment.NewLine & ex.Message,

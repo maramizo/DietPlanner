@@ -11,7 +11,25 @@
     Private Class AdvancedMigrationResult
         Public Property ChangedCount As Integer
         Public ReadOnly Property UnavailableMeals As New List(Of String)
+        Public ReadOnly Property RetryableFailures As New List(Of AdvancedMigrationFailure)
+    End Class
+
+    Private Class AdvancedMigrationFailure
+        Public Property MealName As String
+        Public Property [Error] As Exception
+    End Class
+
+    Private Class AdvancedMigrationItemResult
+        Public Property Meal As Meal
+        Public Property Details As AdvancedRecipeDetails
+        Public Property UnavailableNote As String
         Public Property RetryableFailure As Exception
+    End Class
+
+    Private Class CategoryMigrationResult
+        Public Property UpdatedCount As Integer
+        Public Property Succeeded As Boolean
+        Public Property Failure As Exception
     End Class
 
     Public Sub New()
@@ -21,19 +39,9 @@
 
     Private Async Function LoadDataAsync() As Task
         Dim meals = MealRepository.LoadAll()
-
-        If meals.Any(Function(meal) meal.NeedsAdvancedScrape()) Then
-            Dim loader As New Loading("Adding ingredients and directions to existing recipes...")
-            loader.Show(Me)
-            Try
-                Dim migration = Await MigrateAdvancedDetailsAsync(meals, loader)
-                If migration.ChangedCount > 0 Then MealRepository.SaveAll(meals)
-                ShowAdvancedMigrationResult(migration)
-            Finally
-                loader.Close()
-            End Try
-        End If
-
+        Dim advancedCandidateCount = meals.
+            Where(Function(meal) meal.NeedsAdvancedScrape()).
+            Count()
         Dim needsCategoryUpgrade =
             MealRepository.LoadCategoryVersion() < MealRepository.CurrentCategoryVersion
         Dim hasUncategorizedMeals = meals.Any(
@@ -41,38 +49,77 @@
         )
         If needsCategoryUpgrade AndAlso meals.Count = 0 Then
             MealRepository.SaveCurrentCategoryVersion()
-        ElseIf needsCategoryUpgrade OrElse hasUncategorizedMeals Then
-            Dim loaderMessage = If(
-                needsCategoryUpgrade,
-                "Updating recipe meal categories...",
-                "Categorizing existing recipes..."
-            )
+        End If
+        Dim needsCategoryMigration =
+            meals.Count > 0 AndAlso (needsCategoryUpgrade OrElse hasUncategorizedMeals)
+
+        Dim advancedMigration As AdvancedMigrationResult = Nothing
+        Dim categoryMigration As CategoryMigrationResult = Nothing
+        If advancedCandidateCount > 0 OrElse needsCategoryMigration Then
+            Dim loaderMessage As String
+            If advancedCandidateCount > 0 AndAlso needsCategoryMigration Then
+                loaderMessage =
+                    "Updating recipe details and meal categories in parallel..."
+            ElseIf advancedCandidateCount > 0 Then
+                loaderMessage =
+                    "Updating serving data, ingredients, directions, and notes for " &
+                    advancedCandidateCount &
+                    " existing recipes in parallel..."
+            ElseIf needsCategoryUpgrade Then
+                loaderMessage = "Updating recipe meal categories..."
+            Else
+                loaderMessage = "Categorizing existing recipes..."
+            End If
+
             Dim loader As New Loading(loaderMessage)
             loader.Show(Me)
             Try
-                Dim updatedCount As Integer
-                If needsCategoryUpgrade Then
-                    updatedCount = Await API.RecategorizeMealsAsync(meals)
-                    If updatedCount > 0 Then MealRepository.SaveAll(meals)
-                    MealRepository.SaveCurrentCategoryVersion()
-                Else
-                    updatedCount = Await API.CategorizeUncategorizedMealsAsync(meals)
-                    If updatedCount > 0 Then MealRepository.SaveAll(meals)
+                Dim compatibilityTasks As New List(Of Task)
+                Dim advancedTask As Task(Of AdvancedMigrationResult) = Nothing
+                Dim categoryTask As Task(Of CategoryMigrationResult) = Nothing
+
+                If advancedCandidateCount > 0 Then
+                    advancedTask = MigrateAdvancedDetailsAsync(meals)
+                    compatibilityTasks.Add(advancedTask)
                 End If
-            Catch ex As Exception
-                MealRepository.SaveAll(meals)
-                MessageBox.Show(
-                    "Existing recipes were loaded, but DietPlanner could not update all of their categories. " &
-                    "Breakfast recipes were still made available for Brunch, and the broader category update " &
-                    "will be retried next time." &
-                    Environment.NewLine & Environment.NewLine & ex.Message,
-                    "DietPlanner",
-                    MessageBoxButtons.OK,
-                    MessageBoxIcon.Warning
-                )
+                If needsCategoryMigration Then
+                    categoryTask = MigrateCategoriesAsync(meals, needsCategoryUpgrade)
+                    compatibilityTasks.Add(categoryTask)
+                End If
+
+                Await Task.WhenAll(compatibilityTasks)
+                If advancedTask IsNot Nothing Then advancedMigration = Await advancedTask
+                If categoryTask IsNot Nothing Then categoryMigration = Await categoryTask
+
+                Dim recipesChanged =
+                    advancedMigration IsNot Nothing AndAlso
+                    advancedMigration.ChangedCount > 0
+                Dim categoriesChanged =
+                    categoryMigration IsNot Nothing AndAlso
+                    categoryMigration.UpdatedCount > 0
+                Dim preserveNormalizedCategories =
+                    categoryMigration IsNot Nothing AndAlso
+                    Not categoryMigration.Succeeded
+                If recipesChanged OrElse
+                    categoriesChanged OrElse
+                    preserveNormalizedCategories Then
+                    MealRepository.SaveAll(meals)
+                End If
+                If needsCategoryUpgrade AndAlso
+                    categoryMigration IsNot Nothing AndAlso
+                    categoryMigration.Succeeded Then
+                    MealRepository.SaveCurrentCategoryVersion()
+                End If
             Finally
                 loader.Close()
             End Try
+
+            If advancedMigration IsNot Nothing Then
+                ShowAdvancedMigrationResult(advancedMigration)
+            End If
+            If categoryMigration IsNot Nothing Then
+                ShowCategoryMigrationResult(categoryMigration)
+            End If
         End If
 
         BindMealSelectors(meals)
@@ -81,27 +128,67 @@
     End Function
 
     Private Async Function MigrateAdvancedDetailsAsync(
-        meals As List(Of Meal),
-        loader As Loading
+        meals As List(Of Meal)
     ) As Task(Of AdvancedMigrationResult)
         Dim result As New AdvancedMigrationResult()
+        Dim migrationTasks = meals.
+            Where(Function(candidate) candidate.NeedsAdvancedScrape()).
+            Select(Function(meal) MigrateAdvancedMealAsync(meal)).
+            ToArray()
+        Dim itemResults = Await Task.WhenAll(migrationTasks)
 
-        For Each meal In meals.Where(Function(candidate) candidate.NeedsAdvancedScrape())
-            loader.UpdateMessage("Adding ingredients and directions to " & meal.Name & "...")
-            Try
-                Dim details = Await API.ScrapeAdvancedDetails(meal.Recipe)
-                meal.ApplyAdvancedDetails(details)
+        For Each itemResult In itemResults
+            If itemResult.Details IsNot Nothing Then
+                itemResult.Meal.ApplyAdvancedDetails(itemResult.Details)
                 result.ChangedCount += 1
-            Catch ex As RecipeSourceUnavailableException
-                meal.MarkAdvancedScrapeUnavailable(ex.Message)
-                result.UnavailableMeals.Add(meal.Name)
+            ElseIf itemResult.UnavailableNote IsNot Nothing Then
+                itemResult.Meal.MarkAdvancedScrapeUnavailable(
+                    itemResult.UnavailableNote
+                )
+                result.UnavailableMeals.Add(itemResult.Meal.Name)
                 result.ChangedCount += 1
-            Catch ex As Exception
-                result.RetryableFailure = ex
-                Exit For
-            End Try
+            ElseIf itemResult.RetryableFailure IsNot Nothing Then
+                result.RetryableFailures.Add(
+                    New AdvancedMigrationFailure With {
+                        .MealName = itemResult.Meal.Name,
+                        .Error = itemResult.RetryableFailure
+                    }
+                )
+            End If
         Next
 
+        Return result
+    End Function
+
+    Private Async Function MigrateAdvancedMealAsync(
+        meal As Meal
+    ) As Task(Of AdvancedMigrationItemResult)
+        Dim result As New AdvancedMigrationItemResult With {.Meal = meal}
+        Try
+            result.Details = Await API.ScrapeAdvancedDetails(meal.Recipe)
+        Catch ex As RecipeSourceUnavailableException
+            result.UnavailableNote = ex.Message
+        Catch ex As Exception
+            result.RetryableFailure = ex
+        End Try
+        Return result
+    End Function
+
+    Private Async Function MigrateCategoriesAsync(
+        meals As List(Of Meal),
+        recategorizeAll As Boolean
+    ) As Task(Of CategoryMigrationResult)
+        Dim result As New CategoryMigrationResult()
+        Try
+            result.UpdatedCount = If(
+                recategorizeAll,
+                Await API.RecategorizeMealsAsync(meals),
+                Await API.CategorizeUncategorizedMealsAsync(meals)
+            )
+            result.Succeeded = True
+        Catch ex As Exception
+            result.Failure = ex
+        End Try
         Return result
     End Function
 
@@ -110,7 +197,7 @@
 
         If result.UnavailableMeals.Count > 0 Then
             messageParts.Add(
-                "These recipe sources could not provide ingredients and directions and were marked " &
+                "These recipe sources could not provide serving data, ingredients, directions, and notes and were marked " &
                 "'Source unavailable', so DietPlanner will not retry them automatically:" &
                 Environment.NewLine &
                 String.Join(
@@ -120,13 +207,18 @@
             )
         End If
 
-        If result.RetryableFailure IsNot Nothing Then
+        If result.RetryableFailures.Count > 0 Then
             messageParts.Add(
-                "The remaining advanced-detail migration is still pending and will be retried on " &
-                "the next startup." &
+                "These recipes hit temporary errors and remain pending for the next startup:" &
                 Environment.NewLine &
-                Environment.NewLine &
-                result.RetryableFailure.Message
+                String.Join(
+                    Environment.NewLine,
+                    result.RetryableFailures.Select(
+                        Function(failure)
+                            Return "• " & failure.MealName & ": " & failure.Error.Message
+                        End Function
+                    )
+                )
             )
         End If
 
@@ -134,6 +226,20 @@
         MessageBox.Show(
             String.Join(Environment.NewLine & Environment.NewLine, messageParts),
             "Recipe detail migration",
+            MessageBoxButtons.OK,
+            MessageBoxIcon.Warning
+        )
+    End Sub
+
+    Private Sub ShowCategoryMigrationResult(result As CategoryMigrationResult)
+        If result.Succeeded OrElse result.Failure Is Nothing Then Return
+
+        MessageBox.Show(
+            "Existing recipes were loaded, but DietPlanner could not update all of their categories. " &
+            "Breakfast recipes were still made available for Brunch, and the broader category update " &
+            "will be retried next time." &
+            Environment.NewLine & Environment.NewLine & result.Failure.Message,
+            "DietPlanner",
             MessageBoxButtons.OK,
             MessageBoxIcon.Warning
         )

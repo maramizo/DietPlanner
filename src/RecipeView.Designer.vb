@@ -35,6 +35,12 @@ Partial Class RecipeView
         TotalTime = New Label()
         CookTime = New Label()
         PrepTime = New Label()
+        ServingsTitleLabel = New Label()
+        ServingsValueLabel = New Label()
+        CaloriesPerServingTitleLabel = New Label()
+        CaloriesPerServingValueLabel = New Label()
+        BatchCaloriesTitleLabel = New Label()
+        BatchCaloriesValueLabel = New Label()
         MealTypeTitleLabel = New Label()
         MealTypesLabel = New Label()
         AdvancedDetailsTitleLabel = New Label()
@@ -45,6 +51,8 @@ Partial Class RecipeView
         IngredientAmountColumn = New DataGridViewTextBoxColumn()
         PreparationMethodLabel = New Label()
         PreparationMethodTextBox = New TextBox()
+        NotesLabel = New Label()
+        NotesTextBox = New TextBox()
         CType(DataGridView1, ComponentModel.ISupportInitialize).BeginInit()
         CType(IngredientsDataGrid, ComponentModel.ISupportInitialize).BeginInit()
         SuspendLayout()
@@ -60,9 +68,9 @@ Partial Class RecipeView
         DataGridView1.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill
         DataGridView1.ColumnHeadersHeightSizeMode = DataGridViewColumnHeadersHeightSizeMode.AutoSize
         DataGridView1.Columns.AddRange(New DataGridViewColumn() {Nutrition, Value})
-        DataGridView1.Location = New Point(34, 176)
+        DataGridView1.Location = New Point(34, 251)
         DataGridView1.Name = "DataGridView1"
-        DataGridView1.Size = New Size(387, 430)
+        DataGridView1.Size = New Size(387, 355)
         DataGridView1.TabIndex = 0
         '
         ' Nutrition
@@ -149,10 +157,64 @@ Partial Class RecipeView
         PrepTime.TabIndex = 6
         PrepTime.Text = "Prep Time"
         '
+        ' ServingsTitleLabel
+        '
+        ServingsTitleLabel.AutoSize = True
+        ServingsTitleLabel.Location = New Point(34, 123)
+        ServingsTitleLabel.Name = "ServingsTitleLabel"
+        ServingsTitleLabel.Size = New Size(50, 15)
+        ServingsTitleLabel.TabIndex = 17
+        ServingsTitleLabel.Text = "Servings"
+        '
+        ' ServingsValueLabel
+        '
+        ServingsValueLabel.AutoSize = True
+        ServingsValueLabel.Location = New Point(211, 123)
+        ServingsValueLabel.Name = "ServingsValueLabel"
+        ServingsValueLabel.Size = New Size(50, 15)
+        ServingsValueLabel.TabIndex = 18
+        ServingsValueLabel.Text = "Servings"
+        '
+        ' CaloriesPerServingTitleLabel
+        '
+        CaloriesPerServingTitleLabel.AutoSize = True
+        CaloriesPerServingTitleLabel.Location = New Point(34, 148)
+        CaloriesPerServingTitleLabel.Name = "CaloriesPerServingTitleLabel"
+        CaloriesPerServingTitleLabel.Size = New Size(99, 15)
+        CaloriesPerServingTitleLabel.TabIndex = 19
+        CaloriesPerServingTitleLabel.Text = "Calories / Serving"
+        '
+        ' CaloriesPerServingValueLabel
+        '
+        CaloriesPerServingValueLabel.AutoSize = True
+        CaloriesPerServingValueLabel.Location = New Point(211, 148)
+        CaloriesPerServingValueLabel.Name = "CaloriesPerServingValueLabel"
+        CaloriesPerServingValueLabel.Size = New Size(47, 15)
+        CaloriesPerServingValueLabel.TabIndex = 20
+        CaloriesPerServingValueLabel.Text = "Calories"
+        '
+        ' BatchCaloriesTitleLabel
+        '
+        BatchCaloriesTitleLabel.AutoSize = True
+        BatchCaloriesTitleLabel.Location = New Point(34, 173)
+        BatchCaloriesTitleLabel.Name = "BatchCaloriesTitleLabel"
+        BatchCaloriesTitleLabel.Size = New Size(109, 15)
+        BatchCaloriesTitleLabel.TabIndex = 21
+        BatchCaloriesTitleLabel.Text = "Total Batch Calories"
+        '
+        ' BatchCaloriesValueLabel
+        '
+        BatchCaloriesValueLabel.AutoSize = True
+        BatchCaloriesValueLabel.Location = New Point(211, 173)
+        BatchCaloriesValueLabel.Name = "BatchCaloriesValueLabel"
+        BatchCaloriesValueLabel.Size = New Size(47, 15)
+        BatchCaloriesValueLabel.TabIndex = 22
+        BatchCaloriesValueLabel.Text = "Calories"
+        '
         ' MealTypeTitleLabel
         '
         MealTypeTitleLabel.AutoSize = True
-        MealTypeTitleLabel.Location = New Point(34, 123)
+        MealTypeTitleLabel.Location = New Point(34, 198)
         MealTypeTitleLabel.Name = "MealTypeTitleLabel"
         MealTypeTitleLabel.Size = New Size(60, 15)
         MealTypeTitleLabel.TabIndex = 9
@@ -161,7 +223,7 @@ Partial Class RecipeView
         ' MealTypesLabel
         '
         MealTypesLabel.AutoSize = True
-        MealTypesLabel.Location = New Point(211, 123)
+        MealTypesLabel.Location = New Point(211, 198)
         MealTypesLabel.Name = "MealTypesLabel"
         MealTypesLabel.Size = New Size(63, 15)
         MealTypesLabel.TabIndex = 10
@@ -170,7 +232,7 @@ Partial Class RecipeView
         ' AdvancedDetailsTitleLabel
         '
         AdvancedDetailsTitleLabel.AutoSize = True
-        AdvancedDetailsTitleLabel.Location = New Point(34, 148)
+        AdvancedDetailsTitleLabel.Location = New Point(34, 223)
         AdvancedDetailsTitleLabel.Name = "AdvancedDetailsTitleLabel"
         AdvancedDetailsTitleLabel.Size = New Size(99, 15)
         AdvancedDetailsTitleLabel.TabIndex = 15
@@ -179,7 +241,7 @@ Partial Class RecipeView
         ' AdvancedDetailsStatusLabel
         '
         AdvancedDetailsStatusLabel.AutoSize = True
-        AdvancedDetailsStatusLabel.Location = New Point(211, 148)
+        AdvancedDetailsStatusLabel.Location = New Point(211, 223)
         AdvancedDetailsStatusLabel.Name = "AdvancedDetailsStatusLabel"
         AdvancedDetailsStatusLabel.Size = New Size(39, 15)
         AdvancedDetailsStatusLabel.TabIndex = 16
@@ -205,7 +267,7 @@ Partial Class RecipeView
         IngredientsDataGrid.Location = New Point(460, 45)
         IngredientsDataGrid.Name = "IngredientsDataGrid"
         IngredientsDataGrid.ReadOnly = True
-        IngredientsDataGrid.Size = New Size(410, 240)
+        IngredientsDataGrid.Size = New Size(410, 180)
         IngredientsDataGrid.TabIndex = 12
         '
         ' IngredientNameColumn
@@ -225,7 +287,7 @@ Partial Class RecipeView
         ' PreparationMethodLabel
         '
         PreparationMethodLabel.AutoSize = True
-        PreparationMethodLabel.Location = New Point(460, 305)
+        PreparationMethodLabel.Location = New Point(460, 245)
         PreparationMethodLabel.Name = "PreparationMethodLabel"
         PreparationMethodLabel.Size = New Size(118, 15)
         PreparationMethodLabel.TabIndex = 13
@@ -233,20 +295,48 @@ Partial Class RecipeView
         '
         ' PreparationMethodTextBox
         '
-        PreparationMethodTextBox.Anchor = AnchorStyles.Top Or AnchorStyles.Bottom Or AnchorStyles.Left Or AnchorStyles.Right
-        PreparationMethodTextBox.Location = New Point(460, 328)
+        PreparationMethodTextBox.Anchor = AnchorStyles.Top Or AnchorStyles.Left Or AnchorStyles.Right
+        PreparationMethodTextBox.Location = New Point(460, 268)
         PreparationMethodTextBox.Multiline = True
         PreparationMethodTextBox.Name = "PreparationMethodTextBox"
         PreparationMethodTextBox.ReadOnly = True
         PreparationMethodTextBox.ScrollBars = ScrollBars.Vertical
-        PreparationMethodTextBox.Size = New Size(410, 278)
+        PreparationMethodTextBox.Size = New Size(410, 178)
         PreparationMethodTextBox.TabIndex = 14
+        '
+        ' NotesLabel
+        '
+        NotesLabel.AutoSize = True
+        NotesLabel.Location = New Point(460, 466)
+        NotesLabel.Name = "NotesLabel"
+        NotesLabel.Size = New Size(205, 15)
+        NotesLabel.TabIndex = 17
+        NotesLabel.Text = "Notes (Storage, Freezing, Variations)"
+        '
+        ' NotesTextBox
+        '
+        NotesTextBox.Anchor = AnchorStyles.Top Or AnchorStyles.Bottom Or AnchorStyles.Left Or AnchorStyles.Right
+        NotesTextBox.Location = New Point(460, 489)
+        NotesTextBox.Multiline = True
+        NotesTextBox.Name = "NotesTextBox"
+        NotesTextBox.ReadOnly = True
+        NotesTextBox.ScrollBars = ScrollBars.Vertical
+        NotesTextBox.Size = New Size(410, 117)
+        NotesTextBox.TabIndex = 18
         '
         ' RecipeView
         '
         AutoScaleDimensions = New SizeF(7F, 15F)
         AutoScaleMode = AutoScaleMode.Font
         ClientSize = New Size(900, 660)
+        Controls.Add(BatchCaloriesValueLabel)
+        Controls.Add(BatchCaloriesTitleLabel)
+        Controls.Add(CaloriesPerServingValueLabel)
+        Controls.Add(CaloriesPerServingTitleLabel)
+        Controls.Add(ServingsValueLabel)
+        Controls.Add(ServingsTitleLabel)
+        Controls.Add(NotesTextBox)
+        Controls.Add(NotesLabel)
         Controls.Add(PreparationMethodTextBox)
         Controls.Add(PreparationMethodLabel)
         Controls.Add(IngredientsDataGrid)
@@ -286,6 +376,12 @@ Partial Class RecipeView
     Friend WithEvents TotalTime As Label
     Friend WithEvents CookTime As Label
     Friend WithEvents PrepTime As Label
+    Friend WithEvents ServingsTitleLabel As Label
+    Friend WithEvents ServingsValueLabel As Label
+    Friend WithEvents CaloriesPerServingTitleLabel As Label
+    Friend WithEvents CaloriesPerServingValueLabel As Label
+    Friend WithEvents BatchCaloriesTitleLabel As Label
+    Friend WithEvents BatchCaloriesValueLabel As Label
     Friend WithEvents MealTypeTitleLabel As Label
     Friend WithEvents MealTypesLabel As Label
     Friend WithEvents AdvancedDetailsTitleLabel As Label
@@ -296,4 +392,6 @@ Partial Class RecipeView
     Friend WithEvents IngredientAmountColumn As DataGridViewTextBoxColumn
     Friend WithEvents PreparationMethodLabel As Label
     Friend WithEvents PreparationMethodTextBox As TextBox
+    Friend WithEvents NotesLabel As Label
+    Friend WithEvents NotesTextBox As TextBox
 End Class
