@@ -9,6 +9,10 @@ Ingredients are stored as a normalized name, numeric quantity, and canonical uni
 rather than an opaque amount string. Existing free-form ingredient lists are
 normalized once on startup by independent parallel Codex runs that use the saved
 ingredient text and do not require the recipe URL.
+Purpose labels do not create duplicate ingredients: entries such as
+`Salt (for filling)` and `Salt (for mash)` normalize to `Salt`, and compatible
+amounts are summed locally. Intrinsic varieties remain distinct, so `Kosher Salt`,
+`Sea Salt`, and plain `Salt` are never merged with one another.
 Serving count is stored with each recipe, and scraped calories and nutrients are
 normalized to a per-serving basis. View Details also calculates total batch
 calories from the stored serving count without persisting a redundant total.

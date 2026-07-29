@@ -577,7 +577,12 @@ Module API
 
     Private Function IngredientMeasurementInstructions() As String
         Return "Use a concise, singular, consistently named US-English Ingredient such as Egg, Olive Oil, or Chicken Breast. " &
-            "Keep meaningful qualifiers and package sizes in Ingredient, but do not include the primary quantity or unit there. " &
+            "Keep intrinsic variety or type words and package sizes in Ingredient, but do not include the primary quantity or " &
+            "unit there. Kosher Salt, Sea Salt, Table Salt, and plain Salt are distinct ingredients and must never be collapsed " &
+            "into one name. Remove recipe-section, purpose, and usage annotations from Ingredient: for example, Salt (for " &
+            "filling), Salt (for mash), Salt for serving, and Salt, divided must all use the exact Ingredient name Salt. When " &
+            "the same ingredient appears in multiple recipe sections, return the same exact Ingredient name for every entry; " &
+            "DietPlanner combines compatible quantities locally. " &
             "Return Quantity as one non-negative number, converting mixed numbers and fractions to decimals without changing " &
             "the source measurement system. For a published range, use its lower bound. Choose Unit only from teaspoon, " &
             "tablespoon, fluid ounce, cup, pint, quart, gallon, milliliter, liter, ounce, pound, gram, kilogram, piece, clove, " &

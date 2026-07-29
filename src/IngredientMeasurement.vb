@@ -210,7 +210,9 @@ Public NotInheritable Class IngredientMeasurementConverter
     End Function
 
     Public Shared Function IngredientKey(value As String) As String
-        Dim normalized = If(value, String.Empty).Trim().ToLowerInvariant()
+        Dim normalized = RecipeIngredient.NormalizeIngredientName(
+            value
+        ).ToLowerInvariant()
         normalized = Regex.Replace(normalized, "[^\p{L}\p{Nd}]+", " ")
         Return Regex.Replace(normalized, "\s+", " ").Trim()
     End Function
@@ -337,6 +339,52 @@ Public NotInheritable Class IngredientMeasurementConverter
             GetUnitLabel(convertedUnit, convertedQuantity)
     End Function
 
+    Public Shared Function ConsolidateIngredients(
+        ingredients As IEnumerable(Of RecipeIngredient)
+    ) As List(Of RecipeIngredient)
+        Dim consolidated As New List(Of RecipeIngredient)
+        For Each sourceIngredient In If(
+            ingredients,
+            Enumerable.Empty(Of RecipeIngredient)
+        )
+            If sourceIngredient Is Nothing Then Continue For
+
+            Dim ingredient = New RecipeIngredient(
+                sourceIngredient.Ingredient,
+                sourceIngredient.Amount,
+                sourceIngredient.Quantity,
+                sourceIngredient.Unit
+            )
+            If String.IsNullOrWhiteSpace(ingredient.Ingredient) Then
+                Continue For
+            End If
+
+            Dim merged = False
+            For index As Integer = 0 To consolidated.Count - 1
+                If Not String.Equals(
+                    IngredientKey(consolidated(index).Ingredient),
+                    IngredientKey(ingredient.Ingredient),
+                    StringComparison.OrdinalIgnoreCase
+                ) Then
+                    Continue For
+                End If
+
+                Dim combined As RecipeIngredient = Nothing
+                If TryCombineIngredients(
+                    consolidated(index),
+                    ingredient,
+                    combined
+                ) Then
+                    consolidated(index) = combined
+                    merged = True
+                    Exit For
+                End If
+            Next
+            If Not merged Then consolidated.Add(ingredient)
+        Next
+        Return consolidated
+    End Function
+
     Public Shared Function Aggregate(
         entries As IEnumerable(Of IngredientAmountEntry),
         system As String
@@ -437,6 +485,64 @@ Public NotInheritable Class IngredientMeasurementConverter
             ).
             ThenBy(Function(total) total.Amount).
             ToList()
+    End Function
+
+    Private Shared Function TryCombineIngredients(
+        first As RecipeIngredient,
+        second As RecipeIngredient,
+        ByRef combined As RecipeIngredient
+    ) As Boolean
+        combined = Nothing
+        If first Is Nothing OrElse second Is Nothing OrElse
+            Not first.HasStructuredMeasurement() OrElse
+            Not second.HasStructuredMeasurement() Then
+            Return False
+        End If
+
+        Dim firstUnit = NormalizeUnit(first.Unit)
+        Dim secondUnit = NormalizeUnit(second.Unit)
+        Dim firstDimension = GetDimension(firstUnit)
+        Dim secondDimension = GetDimension(secondUnit)
+        If Not String.Equals(
+            firstDimension,
+            secondDimension,
+            StringComparison.Ordinal
+        ) Then
+            Return False
+        End If
+
+        Dim combinedQuantity As Double
+        If firstDimension = "mass" OrElse
+            firstDimension = "volume" Then
+            Dim baseQuantity =
+                ToBaseQuantity(first.Quantity.Value, firstUnit) +
+                ToBaseQuantity(second.Quantity.Value, secondUnit)
+            Dim factors = If(
+                firstDimension = "mass",
+                MassFactors,
+                VolumeFactors
+            )
+            combinedQuantity = baseQuantity / factors(firstUnit)
+        Else
+            If Not String.Equals(
+                firstUnit,
+                secondUnit,
+                StringComparison.OrdinalIgnoreCase
+            ) Then
+                Return False
+            End If
+            combinedQuantity =
+                first.Quantity.Value +
+                second.Quantity.Value
+        End If
+        combinedQuantity = Math.Round(combinedQuantity, 9)
+
+        combined = New RecipeIngredient(
+            first.Ingredient,
+            quantity:=combinedQuantity,
+            unit:=firstUnit
+        )
+        Return True
     End Function
 
     Private Shared Function ExpandUnicodeFractions(value As String) As String

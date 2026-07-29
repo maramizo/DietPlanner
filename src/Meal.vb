@@ -3,7 +3,7 @@
     Public Const AdvancedScrapeComplete As String = "Complete"
     Public Const AdvancedScrapeUnavailable As String = "Unavailable"
     Public Const CurrentAdvancedScrapeVersion As Integer = 1
-    Public Const CurrentIngredientDataVersion As Integer = 1
+    Public Const CurrentIngredientDataVersion As Integer = 2
 
     Private Shared ReadOnly MealTypeOrder As String() = {
         "Breakfast",
@@ -200,23 +200,9 @@
     Private Shared Function NormalizeIngredients(
         ingredients As IEnumerable(Of RecipeIngredient)
     ) As List(Of RecipeIngredient)
-        Dim normalized As New List(Of RecipeIngredient)
-        If ingredients Is Nothing Then Return normalized
-
-        For Each ingredient In ingredients
-            If ingredient Is Nothing OrElse String.IsNullOrWhiteSpace(ingredient.Ingredient) Then
-                Continue For
-            End If
-            normalized.Add(
-                New RecipeIngredient(
-                    ingredient.Ingredient,
-                    ingredient.Amount,
-                    ingredient.Quantity,
-                    ingredient.Unit
-                )
-            )
-        Next
-        Return normalized
+        Return IngredientMeasurementConverter.ConsolidateIngredients(
+            ingredients
+        )
     End Function
 
     Private Function NormalizeAdvancedScrapeStatus(status As String) As String
