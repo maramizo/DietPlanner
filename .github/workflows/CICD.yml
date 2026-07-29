@@ -1,63 +1,106 @@
-name: .NET Core Desktop
+name: Build and Release
 
 on:
   push:
-    branches: [ "master" ]
+    branches:
+      - master
   pull_request:
-    branches: [ "master" ]
+    branches:
+      - master
+  workflow_dispatch:
+
+concurrency:
+  group: dietplanner-${{ github.ref }}
+  cancel-in-progress: false
 
 jobs:
-
   build:
-    permissions: write-all
     runs-on: windows-latest
+    permissions:
+      contents: read
+    outputs:
+      version: ${{ steps.version.outputs.version }}
 
     steps:
-    - name: Checkout
-      uses: actions/checkout@v4
+      - name: Check out repository
+        uses: actions/checkout@v7
 
-    # Install the .NET Core workload
-    - name: Install .NET Core
-      uses: actions/setup-dotnet@v4
-      with:
-        dotnet-version: 8.0.x
+      - name: Install .NET SDK
+        uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: 9.0.x
 
-    # Add  MSBuild to the PATH: https://github.com/microsoft/setup-msbuild
-    - name: Setup MSBuild.exe
-      uses: microsoft/setup-msbuild@v2
+      - name: Choose release version
+        id: version
+        shell: pwsh
+        run: |
+          $version = "1.0.${{ github.run_number }}"
+          "version=$version" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
 
-    # Restore
-    - name: Restore NuGet packages
-      run: dotnet restore ./src
+      - name: Restore
+        shell: pwsh
+        run: dotnet restore .\src\DietPlanner.sln
 
-    # Build & Publish
-    - name: Build
-      run: dotnet publish -c Release -o ./publish ./src
+      - name: Publish Windows application
+        shell: pwsh
+        run: |
+          $version = "${{ steps.version.outputs.version }}"
+          dotnet publish .\src\DietPlanner.vbproj `
+            --configuration Release `
+            --no-restore `
+            --output .\publish `
+            -p:Version=$version `
+            -p:AssemblyVersion="${version}.0" `
+            -p:FileVersion="${version}.0" `
+            -p:InformationalVersion="${version}+$env:GITHUB_SHA"
 
-    # Zip
-    - name: Zip
-      run: Compress-Archive -Path publish/* -Destination release.zip
+      - name: Package and checksum
+        shell: pwsh
+        run: |
+          if (Test-Path -LiteralPath .\publish\data) {
+            throw "Release packages must never contain the user's data directory."
+          }
+          Compress-Archive -Path .\publish\* -DestinationPath .\release.zip -CompressionLevel Optimal
+          $hash = (Get-FileHash -LiteralPath .\release.zip -Algorithm SHA256).Hash.ToLowerInvariant()
+          "$hash  release.zip" | Set-Content -LiteralPath .\release.zip.sha256 -Encoding ascii
 
-    # Create a release
-    - name: Create Release
-      id: create_release
-      uses: actions/create-release@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        tag_name: ${{ github.run_number }}
-        release_name: Release ${{ github.run_number }}
-        draft: false
-        prerelease: false
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: DietPlanner-${{ steps.version.outputs.version }}
+          path: |
+            release.zip
+            release.zip.sha256
+          if-no-files-found: error
 
-    # Upload the release
-    - name: Upload Release Asset
-      id: upload-release-asset
-      uses: actions/upload-release-asset@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: ./release.zip
-        asset_name: release.zip
-        asset_content_type: application/zip  
+  release:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Download packaged application
+        uses: actions/download-artifact@v8
+        with:
+          name: DietPlanner-${{ needs.build.outputs.version }}
+          path: release-assets
+
+      - name: Publish GitHub Release
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $version = "${{ needs.build.outputs.version }}"
+          $tag = "v$version"
+          $title = "DietPlanner $version"
+
+          gh release create $tag `
+            ./release-assets/release.zip `
+            ./release-assets/release.zip.sha256 `
+            --repo $env:GITHUB_REPOSITORY `
+            --target $env:GITHUB_SHA `
+            --title $title `
+            --generate-notes `
+            --latest

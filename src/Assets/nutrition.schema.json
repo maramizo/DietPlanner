@@ -1,0 +1,151 @@
+{
+  "type": "object",
+  "properties": {
+    "Name": {
+      "type": "string"
+    },
+    "Calories": {
+      "type": "integer"
+    },
+    "MealTypes": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": [
+          "Breakfast",
+          "Lunch",
+          "Brunch",
+          "Dinner",
+          "Snack"
+        ]
+      }
+    },
+    "Times": {
+      "type": "object",
+      "properties": {
+        "Prep": {
+          "type": "integer"
+        },
+        "Cook": {
+          "type": "integer"
+        }
+      },
+      "required": [
+        "Prep",
+        "Cook"
+      ],
+      "additionalProperties": false
+    },
+    "Ingredients": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "Ingredient": {
+            "type": "string"
+          },
+          "Amount": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "Ingredient",
+          "Amount"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "PreparationMethod": {
+      "type": "object",
+      "properties": {
+        "Preparation": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "Cooking": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "required": [
+        "Preparation",
+        "Cooking"
+      ],
+      "additionalProperties": false
+    },
+    "Nutritionals": {
+      "type": "object",
+      "properties": {
+        "Protein": {
+          "type": "number"
+        },
+        "Fat": {
+          "type": "number"
+        },
+        "Carbs": {
+          "type": "number"
+        },
+        "Dietary Fiber": {
+          "type": "number"
+        },
+        "Trans Fat": {
+          "type": "number"
+        },
+        "Saturated Fat": {
+          "type": "number"
+        },
+        "Sugar": {
+          "type": "number"
+        },
+        "Sodium": {
+          "type": "number"
+        },
+        "Potassium": {
+          "type": "number"
+        },
+        "Phosphorus": {
+          "type": "number"
+        },
+        "Calcium": {
+          "type": "number"
+        },
+        "Iron": {
+          "type": "number"
+        },
+        "Cholesterol": {
+          "type": "number"
+        }
+      },
+      "required": [
+        "Protein",
+        "Fat",
+        "Carbs",
+        "Dietary Fiber",
+        "Trans Fat",
+        "Saturated Fat",
+        "Sugar",
+        "Sodium",
+        "Potassium",
+        "Phosphorus",
+        "Calcium",
+        "Iron",
+        "Cholesterol"
+      ],
+      "additionalProperties": false
+    }
+  },
+  "required": [
+    "Name",
+    "Calories",
+    "MealTypes",
+    "Times",
+    "Ingredients",
+    "PreparationMethod",
+    "Nutritionals"
+  ],
+  "additionalProperties": false
+}

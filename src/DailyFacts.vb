@@ -8,6 +8,7 @@
 
     Public Sub New(meals As List(Of Meal))
         InitializeComponent()
+        ApplyAppIcon(Me)
         Dim totalCalories As Integer = 0
         Dim totalCookTime As Integer = 0
         Dim totals As New Dictionary(Of String, Double)

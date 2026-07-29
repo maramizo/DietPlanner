@@ -1,6 +1,7 @@
 ﻿Public Class RecommendedIntake
     Public Sub New()
         InitializeComponent()
+        ApplyAppIcon(Me)
         Dim currentSettings = New NutrientInfo().RecommendedDailyIntakes
         For Each setting As KeyValuePair(Of String, Double) In currentSettings
             RecommendedGridView.Rows.Add(setting.Key, setting.Value)

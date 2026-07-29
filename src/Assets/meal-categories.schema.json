@@ -1,0 +1,38 @@
+{
+  "type": "object",
+  "properties": {
+    "Meals": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "Index": {
+            "type": "integer"
+          },
+          "MealTypes": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "Breakfast",
+                "Lunch",
+                "Brunch",
+                "Dinner",
+                "Snack"
+              ]
+            }
+          }
+        },
+        "required": [
+          "Index",
+          "MealTypes"
+        ],
+        "additionalProperties": false
+      }
+    }
+  },
+  "required": [
+    "Meals"
+  ],
+  "additionalProperties": false
+}

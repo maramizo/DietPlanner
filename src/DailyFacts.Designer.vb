@@ -154,6 +154,6 @@ Partial Class DailyFacts
     Friend WithEvents Amount As DataGridViewTextBoxColumn
     Friend WithEvents PctDaily As DataGridViewTextBoxColumn
     Friend WithEvents Recommended As DataGridViewTextBoxColumn
-    Friend WithEvents CancelButton As Button
+    Friend Shadows WithEvents CancelButton As Button
     Friend WithEvents ChangeButton As Button
 End Class

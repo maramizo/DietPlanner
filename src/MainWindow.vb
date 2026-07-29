@@ -1,102 +1,298 @@
 ﻿Imports Newtonsoft.Json
 Imports System.IO
-Imports System.Windows.Forms.Design
 
 Public Class MainWindow
-    Private Sub LoadData()
-        Try
-            Dim json As String = File.ReadAllText("./data/meals.json")
-            Dim meals As List(Of Meal) = JsonConvert.DeserializeObject(Of List(Of Meal))(json)
-            meals = meals.OrderBy(Of String)(Function(x) x.Name).ToList()
+    Private Const EmptySelectionText As String = "Select an option..."
+    Private Shared ReadOnly SlotMealTypes As String() = {
+        "Breakfast",
+        "Lunch",
+        "Brunch",
+        "Dinner",
+        "Snack"
+    }
 
-            'Next, we set ComboBox1 to ComboBox5 to display the names of the meals:
-            Dim comboBoxes() As ComboBox = {ComboBox1, ComboBox2, ComboBox3, ComboBox4, ComboBox5}
+    Private Class AdvancedMigrationResult
+        Public Property ChangedCount As Integer
+        Public ReadOnly Property UnavailableMeals As New List(Of String)
+        Public Property RetryableFailure As Exception
+    End Class
 
-            For Each comboBox As ComboBox In comboBoxes
-                Dim bindingSource As New BindingSource()
-                bindingSource.DataSource = meals
-                comboBox.DataSource = bindingSource
-                comboBox.DisplayMember = "name"
-                AddHandler comboBox.SelectedIndexChanged, AddressOf ComboBox_SelectedIndexChanged
-                comboBox.Text = "Select an option..."
-                comboBox.DropDownStyle = ComboBoxStyle.DropDown
-            Next
-
-            Dim clearButtons() As Button = {ClearButton1, ClearButton2, ClearButton3, ClearButton4, ClearButton5}
-            For Each clearButton As Button In clearButtons
-                RemoveHandler clearButton.Click, AddressOf ClearButton_Click
-                AddHandler clearButton.Click, AddressOf ClearButton_Click
-            Next
-
-            Dim ViewRecipeButtons() As Button = {ViewRecipe1, ViewRecipe2, ViewRecipe3, ViewRecipe4, ViewRecipe5}
-            For Each viewRecipeButton As Button In ViewRecipeButtons
-                RemoveHandler viewRecipeButton.Click, AddressOf ViewRecipe_Click
-                AddHandler viewRecipeButton.Click, AddressOf ViewRecipe_Click
-            Next
-
-            Dim buttons() As Button = {Button1, Button2, Button3, Button4, Button5}
-
-            For i As Integer = 0 To 4
-                RemoveHandler buttons(i).Click, AddressOf Button_Click
-                AddHandler buttons(i).Click, AddressOf Button_Click
-            Next
-
-            Dim viewRecipes() As Button = {ViewRecipe1, ViewRecipe2, ViewRecipe3, ViewRecipe4, ViewRecipe5}
-            For i As Integer = 0 To 4
-                viewRecipes(i).Enabled = False
-            Next
-
-        Catch ex As Exception
-            If Not ex.Message.Contains("Could not find file") And Not ex.Message.Contains("Could not find a part") Then
-                MessageBox.Show(ex.Message)
-            End If
-        End Try
+    Public Sub New()
+        InitializeComponent()
+        ApplyAppIcon(Me)
     End Sub
 
-    Private Sub ViewRecipe_Click(sender As Object, e As EventArgs) Handles ViewRecipe1.Click, ViewRecipe2.Click, ViewRecipe3.Click, ViewRecipe4.Click, ViewRecipe5.Click
-        'This will open a URL in the default browser:
-        Dim viewRecipe As Button = CType(sender, Button)
-        Dim meal As Meal = CType(Controls.Find("ComboBox" & viewRecipe.Name.Substring(10), True)(0), ComboBox).SelectedItem
+    Private Async Function LoadDataAsync() As Task
+        Dim meals = LoadMeals()
+
+        If meals.Any(Function(meal) meal.NeedsAdvancedScrape()) Then
+            Dim loader As New Loading("Adding ingredients and directions to existing recipes...")
+            loader.Show(Me)
+            Try
+                Dim migration = Await MigrateAdvancedDetailsAsync(meals, loader)
+                If migration.ChangedCount > 0 Then SaveMeals(meals)
+                ShowAdvancedMigrationResult(migration)
+            Finally
+                loader.Close()
+            End Try
+        End If
+
+        If meals.Any(
+            Function(meal) meal.MealTypes Is Nothing OrElse meal.MealTypes.Count = 0
+        ) Then
+            Dim loader As New Loading("Categorizing existing recipes...")
+            loader.Show(Me)
+            Try
+                Dim updatedCount = Await API.CategorizeUncategorizedMealsAsync(meals)
+                If updatedCount > 0 Then SaveMeals(meals)
+            Catch ex As Exception
+                MessageBox.Show(
+                    "Existing recipes were loaded, but DietPlanner could not categorize all of them." &
+                    Environment.NewLine & Environment.NewLine & ex.Message,
+                    "DietPlanner",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Warning
+                )
+            Finally
+                loader.Close()
+            End Try
+        End If
+
+        BindMealSelectors(meals)
+        CalculateTotalCalories()
+        RecalculateEnabledViewButtons()
+    End Function
+
+    Private Async Function MigrateAdvancedDetailsAsync(
+        meals As List(Of Meal),
+        loader As Loading
+    ) As Task(Of AdvancedMigrationResult)
+        Dim result As New AdvancedMigrationResult()
+
+        For Each meal In meals.Where(Function(candidate) candidate.NeedsAdvancedScrape())
+            loader.UpdateMessage("Adding ingredients and directions to " & meal.Name & "...")
+            Try
+                Dim details = Await API.ScrapeAdvancedDetails(meal.Recipe)
+                meal.ApplyAdvancedDetails(details)
+                result.ChangedCount += 1
+            Catch ex As RecipeSourceUnavailableException
+                meal.MarkAdvancedScrapeUnavailable(ex.Message)
+                result.UnavailableMeals.Add(meal.Name)
+                result.ChangedCount += 1
+            Catch ex As Exception
+                result.RetryableFailure = ex
+                Exit For
+            End Try
+        Next
+
+        Return result
+    End Function
+
+    Private Sub ShowAdvancedMigrationResult(result As AdvancedMigrationResult)
+        Dim messageParts As New List(Of String)
+
+        If result.UnavailableMeals.Count > 0 Then
+            messageParts.Add(
+                "These recipe sources could not provide ingredients and directions and were marked " &
+                "'Source unavailable', so DietPlanner will not retry them automatically:" &
+                Environment.NewLine &
+                String.Join(
+                    Environment.NewLine,
+                    result.UnavailableMeals.Select(Function(name) "• " & name)
+                )
+            )
+        End If
+
+        If result.RetryableFailure IsNot Nothing Then
+            messageParts.Add(
+                "The remaining advanced-detail migration is still pending and will be retried on " &
+                "the next startup." &
+                Environment.NewLine &
+                Environment.NewLine &
+                result.RetryableFailure.Message
+            )
+        End If
+
+        If messageParts.Count = 0 Then Return
+        MessageBox.Show(
+            String.Join(Environment.NewLine & Environment.NewLine, messageParts),
+            "Recipe detail migration",
+            MessageBoxButtons.OK,
+            MessageBoxIcon.Warning
+        )
+    End Sub
+
+    Private Function LoadMeals() As List(Of Meal)
+        If Not File.Exists("./data/meals.json") Then Return New List(Of Meal)
+
+        Dim json = File.ReadAllText("./data/meals.json")
+        Dim meals = JsonConvert.DeserializeObject(Of List(Of Meal))(json)
+        If meals Is Nothing Then meals = New List(Of Meal)
+        Return meals.OrderBy(Function(meal) meal.Name).ToList()
+    End Function
+
+    Private Sub SaveMeals(meals As List(Of Meal))
+        If Not Directory.Exists("./data") Then Directory.CreateDirectory("./data")
+        File.WriteAllText(
+            "./data/meals.json",
+            JsonConvert.SerializeObject(meals, Formatting.Indented)
+        )
+    End Sub
+
+    Private Sub BindMealSelectors(meals As List(Of Meal))
+        Dim comboBoxes() As ComboBox = {
+            ComboBox1,
+            ComboBox2,
+            ComboBox3,
+            ComboBox4,
+            ComboBox5
+        }
+
+        For index As Integer = 0 To comboBoxes.Length - 1
+            Dim comboBox = comboBoxes(index)
+            Dim mealType = SlotMealTypes(index)
+            RemoveHandler comboBox.SelectedIndexChanged, AddressOf ComboBox_SelectedIndexChanged
+            comboBox.DataSource = Nothing
+
+            Dim matchingMeals = meals.Where(
+                Function(meal) meal.SupportsMealType(mealType)
+            ).ToList()
+            Dim bindingSource As New BindingSource With {
+                .DataSource = matchingMeals
+            }
+            comboBox.DataSource = bindingSource
+            comboBox.DisplayMember = NameOf(Meal.Name)
+            comboBox.DropDownStyle = ComboBoxStyle.DropDown
+            ClearSelection(comboBox)
+            AddHandler comboBox.SelectedIndexChanged, AddressOf ComboBox_SelectedIndexChanged
+        Next
+    End Sub
+
+    Private Sub ClearSelection(comboBox As ComboBox)
+        comboBox.SelectedIndex = -1
+        comboBox.Text = EmptySelectionText
+    End Sub
+
+    Private Async Sub MainWindow_Load(sender As Object, e As EventArgs) Handles MyBase.Load
+        System.Text.Encoding.RegisterProvider(System.Text.CodePagesEncodingProvider.Instance)
         Try
-            Process.Start(meal.Recipe)
+            Await LoadDataAsync()
         Catch ex As Exception
-            MessageBox.Show("Could not open the recipe. Link has been copied to clipboard.")
+            MessageBox.Show(
+                "Could not load saved recipes." & Environment.NewLine & Environment.NewLine & ex.Message,
+                "DietPlanner",
+                MessageBoxButtons.OK,
+                MessageBoxIcon.Error
+            )
+        End Try
+
+#If Not DEBUG Then
+        If Await AutoUpdater.TryInstallLatestReleaseAsync(Me) Then
+            Close()
+        End If
+#End If
+    End Sub
+
+    Private Sub ViewRecipe_Click(
+        sender As Object,
+        e As EventArgs
+    ) Handles ViewRecipe1.Click, ViewRecipe2.Click, ViewRecipe3.Click, ViewRecipe4.Click, ViewRecipe5.Click
+        Dim viewRecipe = DirectCast(sender, Button)
+        Dim comboBox = DirectCast(
+            Controls.Find("ComboBox" & viewRecipe.Name.Substring(10), True)(0),
+            ComboBox
+        )
+        Dim meal = TryCast(comboBox.SelectedItem, Meal)
+        If meal Is Nothing Then Return
+
+        Try
+            Process.Start(
+                New ProcessStartInfo(meal.Recipe) With {
+                    .UseShellExecute = True
+                }
+            )
+        Catch ex As Exception
+            MessageBox.Show("Could not open the recipe. The link has been copied to the clipboard.")
             Clipboard.SetText(meal.Recipe)
         End Try
     End Sub
 
-    Private Sub ClearButton_Click(clearButton As Button, e As EventArgs) Handles ClearButton1.Click, ClearButton2.Click, ClearButton3.Click, ClearButton4.Click, ClearButton5.Click
-        Dim comboBox As ComboBox = CType(Controls.Find("ComboBox" & clearButton.Name.Substring(11), True)(0), ComboBox)
-        comboBox.Text = "Select an option..."
+    Private Sub ClearButton_Click(
+        clearButton As Button,
+        e As EventArgs
+    ) Handles ClearButton1.Click, ClearButton2.Click, ClearButton3.Click, ClearButton4.Click, ClearButton5.Click
+        Dim comboBox = DirectCast(
+            Controls.Find("ComboBox" & clearButton.Name.Substring(11), True)(0),
+            ComboBox
+        )
+        ClearSelection(comboBox)
         CalculateTotalCalories()
         RecalculateEnabledViewButtons()
     End Sub
 
-    Private Sub MainWindow_Load(sender As Object, e As EventArgs) Handles MyBase.Load
-        System.Text.Encoding.RegisterProvider(System.Text.CodePagesEncodingProvider.Instance)
-        LoadData()
+    Private Sub ClearAllButton_Click(sender As Object, e As EventArgs) Handles ClearAllButton.Click
+        For Each comboBox As ComboBox In {
+            ComboBox1,
+            ComboBox2,
+            ComboBox3,
+            ComboBox4,
+            ComboBox5
+        }
+            ClearSelection(comboBox)
+        Next
+        CalculateTotalCalories()
+        RecalculateEnabledViewButtons()
     End Sub
 
-    Private Sub Button_Click(sender As Object, e As EventArgs) Handles Button1.Click, Button2.Click, Button3.Click, Button4.Click, Button5.Click
-        Dim button As Button = CType(sender, Button)
-        Dim meal As Meal = CType(Controls.Find("ComboBox" & button.Name.Substring(6), True)(0), ComboBox).SelectedItem
+    Private Sub Button_Click(
+        sender As Object,
+        e As EventArgs
+    ) Handles Button1.Click, Button2.Click, Button3.Click, Button4.Click, Button5.Click
+        Dim button = DirectCast(sender, Button)
+        Dim comboBox = DirectCast(
+            Controls.Find("ComboBox" & button.Name.Substring(6), True)(0),
+            ComboBox
+        )
+        Dim meal = TryCast(comboBox.SelectedItem, Meal)
+        If meal Is Nothing Then Return
+
         Dim recipeView As New RecipeView(meal)
         recipeView.Show()
     End Sub
 
     Private Sub AddButton_Click(sender As Object, e As EventArgs) Handles AddButton.Click
         Dim addMeal As New AddRecipe()
-        AddHandler addMeal.FormClosing, AddressOf LoadData
+        AddHandler addMeal.FormClosed, AddressOf AddMeal_FormClosed
         addMeal.Show()
     End Sub
 
-    Private Sub ViewDailyButton_Click(sender As Object, e As EventArgs) Handles ViewDailyFactsButton.Click
+    Private Async Sub AddMeal_FormClosed(sender As Object, e As FormClosedEventArgs)
+        Try
+            Await LoadDataAsync()
+        Catch ex As Exception
+            MessageBox.Show(
+                "Could not reload saved recipes." & Environment.NewLine & Environment.NewLine & ex.Message,
+                "DietPlanner",
+                MessageBoxButtons.OK,
+                MessageBoxIcon.Error
+            )
+        End Try
+    End Sub
+
+    Private Sub ViewDailyButton_Click(
+        sender As Object,
+        e As EventArgs
+    ) Handles ViewDailyFactsButton.Click
         Dim currentMeals As New List(Of Meal)
-        For Each comboBox In {ComboBox1, ComboBox2, ComboBox3, ComboBox4, ComboBox5}
-            If comboBox.Text = "Select an option..." Or comboBox.Text = "" Then
-                Continue For
-            End If
-            currentMeals.Add(CType(comboBox.SelectedItem, Meal))
+        For Each comboBox As ComboBox In {
+            ComboBox1,
+            ComboBox2,
+            ComboBox3,
+            ComboBox4,
+            ComboBox5
+        }
+            Dim meal = TryCast(comboBox.SelectedItem, Meal)
+            If meal IsNot Nothing Then currentMeals.Add(meal)
         Next
 
         Dim dailyFacts As New DailyFacts(currentMeals)
@@ -105,39 +301,34 @@ Public Class MainWindow
 
     Private Sub CalculateTotalCalories()
         Dim totalCalories As Integer = 0
-        For Each comboBox As ComboBox In {ComboBox1, ComboBox2, ComboBox3, ComboBox4, ComboBox5}
-            If comboBox.Text = "Select an option..." Or comboBox.Text = "" Then
-                Continue For
-            End If
-            Dim meal As Meal = CType(comboBox.SelectedItem, Meal)
-            totalCalories += meal.Calory
+        For Each comboBox As ComboBox In {
+            ComboBox1,
+            ComboBox2,
+            ComboBox3,
+            ComboBox4,
+            ComboBox5
+        }
+            Dim meal = TryCast(comboBox.SelectedItem, Meal)
+            If meal IsNot Nothing Then totalCalories += meal.Calory
         Next
 
-        TotalCaloriesLabel.Text = totalCalories
+        TotalCaloriesLabel.Text = totalCalories.ToString()
     End Sub
 
     Private Sub RecalculateEnabledViewButtons()
-        For i As Integer = 0 To 4
-            Dim comboBox As ComboBox = CType(Controls.Find("ComboBox" & (i + 1), True)(0), ComboBox)
-            Dim meal As Meal = comboBox.SelectedItem
-            Dim viewRecipeUrl As Button = CType(Controls.Find("ViewRecipe" & (i + 1), True)(0), Button)
-            Dim viewRecipe As Button = CType(Controls.Find("Button" & (i + 1), True)(0), Button)
-            viewRecipe.Enabled = meal IsNot Nothing And comboBox.Text <> "Select an option..."
-            viewRecipeUrl.Enabled = meal IsNot Nothing And comboBox.Text <> "Select an option..."
+        For index As Integer = 1 To 5
+            Dim comboBox = DirectCast(
+                Controls.Find("ComboBox" & index, True)(0),
+                ComboBox
+            )
+            Dim hasMeal = TryCast(comboBox.SelectedItem, Meal) IsNot Nothing
+            DirectCast(Controls.Find("ViewRecipe" & index, True)(0), Button).Enabled = hasMeal
+            DirectCast(Controls.Find("Button" & index, True)(0), Button).Enabled = hasMeal
         Next
     End Sub
 
     Private Sub ComboBox_SelectedIndexChanged(sender As Object, e As EventArgs)
-        ' Cast the sender to a ComboBox
-        Dim selectedComboBox As ComboBox = CType(sender, ComboBox)
-        Dim viewRecipe As Button = CType(Controls.Find("ViewRecipe" & selectedComboBox.Name.Substring(8), True)(0), Button)
-        Dim viewRecipeUrl As Button = CType(Controls.Find("Button" & selectedComboBox.Name.Substring(8), True)(0), Button)
-
-        ' Get the selected meal
-        Dim selectedMeal As Meal = CType(selectedComboBox.SelectedItem, Meal)
-        viewRecipe.Enabled = selectedMeal IsNot Nothing
-        viewRecipeUrl.Enabled = selectedMeal IsNot Nothing
-
         CalculateTotalCalories()
+        RecalculateEnabledViewButtons()
     End Sub
 End Class

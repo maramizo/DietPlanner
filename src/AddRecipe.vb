@@ -3,6 +3,11 @@ Imports System.IO
 
 Public Class AddRecipe
 
+    Public Sub New()
+        InitializeComponent()
+        ApplyAppIcon(Me)
+    End Sub
+
     Private Sub AddRecipe_Load(sender As Object, e As EventArgs) Handles MyBase.Load
         For Each nutritional As String In AllNutritionals
             NutritionalsDataGrid.Rows.Add(nutritional, "")
@@ -51,8 +56,41 @@ Public Class AddRecipe
             End If
         Next
 
+        Dim mealTypes As New List(Of String)
+        For Each selectedMealType In MealTypeCheckedListBox.CheckedItems
+            mealTypes.Add(selectedMealType.ToString())
+        Next
+        If mealTypes.Count = 0 Then
+            MessageBox.Show("Please select at least one meal type.")
+            Return
+        End If
+
+        Dim ingredients As New List(Of RecipeIngredient)
+        For Each row As DataGridViewRow In IngredientsDataGrid.Rows
+            If row.IsNewRow Then Continue For
+
+            Dim ingredientName = Convert.ToString(row.Cells(0).Value).Trim()
+            Dim amount = Convert.ToString(row.Cells(1).Value).Trim()
+            If ingredientName = "" AndAlso amount = "" Then Continue For
+            If ingredientName = "" Then
+                MessageBox.Show("Each ingredient amount needs an ingredient name.")
+                Return
+            End If
+            ingredients.Add(New RecipeIngredient(ingredientName, amount))
+        Next
+
         'Store meal
-        Dim meal As New Meal(NameTextBox.Text, CaloriesTextBox.Text, nutritionals, RecipeTextBox.Text, PrepTimeTextBox.Text, CookTimeTextBox.Text)
+        Dim meal As New Meal(
+            NameTextBox.Text,
+            CaloriesTextBox.Text,
+            nutritionals,
+            RecipeTextBox.Text,
+            PrepTimeTextBox.Text,
+            CookTimeTextBox.Text,
+            mealTypes,
+            ingredients,
+            PreparationMethodTextBox.Text
+        )
         Dim json As String
         If Directory.Exists("./data") And File.Exists("./data/meals.json") Then
             json = File.ReadAllText("./data/meals.json")
@@ -60,6 +98,7 @@ Public Class AddRecipe
             json = "[]"
         End If
         Dim meals As List(Of Meal) = JsonConvert.DeserializeObject(Of List(Of Meal))(json)
+        If meals Is Nothing Then meals = New List(Of Meal)
         meals.Add(meal)
         json = JsonConvert.SerializeObject(meals)
         If Not Directory.Exists("./data") Then
@@ -74,24 +113,52 @@ Public Class AddRecipe
     End Sub
 
     Private Async Sub ScrapeButton_Click(sender As Object, e As EventArgs) Handles ScrapeButton.Click
-        Dim loader = New Loading("Scraping nutritionals...")
+        Dim loader = New Loading("Extracting recipe details with Codex...")
         loader.Show()
-        Dim meal = Await API.ScrapeNutritionals(RecipeTextBox.Text)
-        If meal Is Nothing Then
-            MessageBox.Show("Could not scrape nutritionals")
-            Return
-        End If
+        ScrapeButton.Enabled = False
 
-        NameTextBox.Text = meal.Name
-        CaloriesTextBox.Text = meal.Calory
-        PrepTimeTextBox.Text = meal.PrepTime
-        CookTimeTextBox.Text = meal.CookTime
+        Try
+            Dim meal = Await API.ScrapeNutritionals(RecipeTextBox.Text)
 
-        'Clear all grid rows then add the new ones
-        NutritionalsDataGrid.Rows.Clear()
-        For Each nutritional As KeyValuePair(Of String, Double) In meal.Nutritionals
-            NutritionalsDataGrid.Rows.Add(nutritional.Key, nutritional.Value.ToString())
-        Next
-        loader.Close()
+            NameTextBox.Text = meal.Name
+            CaloriesTextBox.Text = meal.Calory
+            PrepTimeTextBox.Text = meal.PrepTime
+            CookTimeTextBox.Text = meal.CookTime
+            For index As Integer = 0 To MealTypeCheckedListBox.Items.Count - 1
+                Dim displayedMealType = MealTypeCheckedListBox.Items(index).ToString()
+                MealTypeCheckedListBox.SetItemChecked(
+                    index,
+                    meal.MealTypes.Any(
+                        Function(value) String.Equals(
+                            value,
+                            displayedMealType,
+                            StringComparison.OrdinalIgnoreCase
+                        )
+                    )
+                )
+            Next
+
+            'Clear all grid rows then add the new ones
+            NutritionalsDataGrid.Rows.Clear()
+            For Each nutritional As KeyValuePair(Of String, Double) In meal.Nutritionals
+                NutritionalsDataGrid.Rows.Add(nutritional.Key, nutritional.Value.ToString())
+            Next
+
+            IngredientsDataGrid.Rows.Clear()
+            For Each ingredient In meal.Ingredients
+                IngredientsDataGrid.Rows.Add(ingredient.Ingredient, ingredient.Amount)
+            Next
+            PreparationMethodTextBox.Text = meal.PreparationMethod
+        Catch ex As Exception
+            MessageBox.Show(
+                "Could not extract recipe details." & Environment.NewLine & Environment.NewLine & ex.Message,
+                "DietPlanner",
+                MessageBoxButtons.OK,
+                MessageBoxIcon.Error
+            )
+        Finally
+            ScrapeButton.Enabled = True
+            loader.Close()
+        End Try
     End Sub
 End Class
