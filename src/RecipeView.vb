@@ -71,6 +71,7 @@
         For Each ingredient In _meal.Ingredients
             IngredientsDataGrid.Rows.Add(
                 ingredient.Ingredient,
+                ingredient.Details,
                 ingredient.DisplayAmount(measurementSystem)
             )
         Next

@@ -48,6 +48,7 @@ Partial Class RecipeView
         IngredientsLabel = New Label()
         IngredientsDataGrid = New DataGridView()
         IngredientNameColumn = New DataGridViewTextBoxColumn()
+        IngredientDetailsColumn = New DataGridViewTextBoxColumn()
         IngredientAmountColumn = New DataGridViewTextBoxColumn()
         PreparationMethodLabel = New Label()
         PreparationMethodTextBox = New TextBox()
@@ -263,7 +264,11 @@ Partial Class RecipeView
         IngredientsDataGrid.Anchor = AnchorStyles.Top Or AnchorStyles.Left Or AnchorStyles.Right
         IngredientsDataGrid.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill
         IngredientsDataGrid.ColumnHeadersHeightSizeMode = DataGridViewColumnHeadersHeightSizeMode.AutoSize
-        IngredientsDataGrid.Columns.AddRange(New DataGridViewColumn() {IngredientNameColumn, IngredientAmountColumn})
+        IngredientsDataGrid.Columns.AddRange(New DataGridViewColumn() {
+            IngredientNameColumn,
+            IngredientDetailsColumn,
+            IngredientAmountColumn
+        })
         IngredientsDataGrid.Location = New Point(460, 45)
         IngredientsDataGrid.Name = "IngredientsDataGrid"
         IngredientsDataGrid.ReadOnly = True
@@ -272,14 +277,21 @@ Partial Class RecipeView
         '
         ' IngredientNameColumn
         '
-        IngredientNameColumn.FillWeight = 70.0!
+        IngredientNameColumn.FillWeight = 40.0!
         IngredientNameColumn.HeaderText = "Ingredient"
         IngredientNameColumn.Name = "IngredientNameColumn"
         IngredientNameColumn.ReadOnly = True
         '
+        ' IngredientDetailsColumn
+        '
+        IngredientDetailsColumn.FillWeight = 32.0!
+        IngredientDetailsColumn.HeaderText = "Details"
+        IngredientDetailsColumn.Name = "IngredientDetailsColumn"
+        IngredientDetailsColumn.ReadOnly = True
+        '
         ' IngredientAmountColumn
         '
-        IngredientAmountColumn.FillWeight = 30.0!
+        IngredientAmountColumn.FillWeight = 28.0!
         IngredientAmountColumn.HeaderText = "Amount"
         IngredientAmountColumn.Name = "IngredientAmountColumn"
         IngredientAmountColumn.ReadOnly = True
@@ -389,6 +401,7 @@ Partial Class RecipeView
     Friend WithEvents IngredientsLabel As Label
     Friend WithEvents IngredientsDataGrid As DataGridView
     Friend WithEvents IngredientNameColumn As DataGridViewTextBoxColumn
+    Friend WithEvents IngredientDetailsColumn As DataGridViewTextBoxColumn
     Friend WithEvents IngredientAmountColumn As DataGridViewTextBoxColumn
     Friend WithEvents PreparationMethodLabel As Label
     Friend WithEvents PreparationMethodTextBox As TextBox

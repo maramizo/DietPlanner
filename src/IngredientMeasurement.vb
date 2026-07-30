@@ -353,7 +353,8 @@ Public NotInheritable Class IngredientMeasurementConverter
                 sourceIngredient.Ingredient,
                 sourceIngredient.Amount,
                 sourceIngredient.Quantity,
-                sourceIngredient.Unit
+                sourceIngredient.Unit,
+                sourceIngredient.Details
             )
             If String.IsNullOrWhiteSpace(ingredient.Ingredient) Then
                 Continue For
@@ -540,7 +541,11 @@ Public NotInheritable Class IngredientMeasurementConverter
         combined = New RecipeIngredient(
             first.Ingredient,
             quantity:=combinedQuantity,
-            unit:=firstUnit
+            unit:=firstUnit,
+            details:=RecipeIngredient.MergeDetails(
+                first.Details,
+                second.Details
+            )
         )
         Return True
     End Function

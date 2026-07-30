@@ -12,6 +12,9 @@
           "Ingredient": {
             "type": "string"
           },
+          "Details": {
+            "type": "string"
+          },
           "Quantity": {
             "type": "number",
             "minimum": 0
@@ -48,6 +51,7 @@
         "required": [
           "Index",
           "Ingredient",
+          "Details",
           "Quantity",
           "Unit"
         ],

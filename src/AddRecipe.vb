@@ -1,5 +1,7 @@
 ﻿Public Class AddRecipe
 
+    Private _ingredientsWereScraped As Boolean
+
     Public Sub New()
         InitializeComponent()
         ApplyAppIcon(Me)
@@ -100,9 +102,11 @@
             If row.IsNewRow Then Continue For
 
             Dim ingredientName = Convert.ToString(row.Cells(0).Value).Trim()
-            Dim quantityText = Convert.ToString(row.Cells(1).Value).Trim()
-            Dim unitText = Convert.ToString(row.Cells(2).Value).Trim()
+            Dim ingredientDetails = Convert.ToString(row.Cells(1).Value).Trim()
+            Dim quantityText = Convert.ToString(row.Cells(2).Value).Trim()
+            Dim unitText = Convert.ToString(row.Cells(3).Value).Trim()
             If ingredientName = "" AndAlso
+                ingredientDetails = "" AndAlso
                 quantityText = "" AndAlso
                 unitText = "" Then
                 Continue For
@@ -142,7 +146,8 @@
                 New RecipeIngredient(
                     ingredientName,
                     quantity:=quantity,
-                    unit:=unit
+                    unit:=unit,
+                    details:=ingredientDetails
                 )
             )
         Next
@@ -161,7 +166,11 @@
             PreparationMethodTextBox.Text,
             NotesTextBox.Text,
             advancedScrapeVersion:=Meal.CurrentAdvancedScrapeVersion,
-            ingredientDataVersion:=Meal.CurrentIngredientDataVersion
+            ingredientDataVersion:=If(
+                _ingredientsWereScraped,
+                Meal.CurrentIngredientDataVersion,
+                Math.Max(0, Meal.CurrentIngredientDataVersion - 1)
+            )
         )
         Dim meals = MealRepository.LoadAll()
         meals.Add(meal)
@@ -210,6 +219,7 @@
             For Each ingredient In meal.Ingredients
                 IngredientsDataGrid.Rows.Add(
                     ingredient.Ingredient,
+                    ingredient.Details,
                     If(
                         ingredient.Quantity.HasValue,
                         ingredient.Quantity.Value.ToString(
@@ -220,6 +230,7 @@
                     ingredient.Unit
                 )
             Next
+            _ingredientsWereScraped = True
             PreparationMethodTextBox.Text = meal.PreparationMethod
             NotesTextBox.Text = meal.Notes
         Catch ex As Exception

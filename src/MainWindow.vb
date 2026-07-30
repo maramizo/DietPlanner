@@ -37,12 +37,6 @@
         Public ReadOnly Property RetryableFailures As New List(Of AdvancedMigrationFailure)
     End Class
 
-    Private Class IngredientMigrationItemResult
-        Public Property Meal As Meal
-        Public Property Ingredients As List(Of RecipeIngredient)
-        Public Property RetryableFailure As Exception
-    End Class
-
     Public Sub New()
         InitializeComponent()
         ApplyAppIcon(Me)
@@ -89,7 +83,7 @@
             End If
             If ingredientCandidateCount > 0 Then
                 compatibilityFlows.Add(
-                    "standardized ingredient measurements for " &
+                    "a canonical ingredient catalog for " &
                     ingredientCandidateCount &
                     " recipe" &
                     If(ingredientCandidateCount = 1, "", "s")
@@ -241,43 +235,40 @@
         meals As List(Of Meal)
     ) As Task(Of IngredientMigrationResult)
         Dim result As New IngredientMigrationResult()
-        Dim migrationTasks = meals.
+        Dim candidates = meals.
             Where(
                 Function(candidate)
                     Return candidate.NeedsIngredientNormalization() AndAlso
                         Not candidate.NeedsAdvancedScrape()
                 End Function
             ).
-            Select(Function(meal) MigrateIngredientMeasurementsAsync(meal)).
-            ToArray()
-        Dim itemResults = Await Task.WhenAll(migrationTasks)
+            ToList()
+        If candidates.Count = 0 Then Return result
 
-        For Each itemResult In itemResults
-            If itemResult.Ingredients IsNot Nothing Then
-                itemResult.Meal.ApplyNormalizedIngredients(
-                    itemResult.Ingredients
+        Try
+            Dim normalizedCatalog =
+                Await API.NormalizeIngredientCatalogAsync(
+                    candidates,
+                    meals.Where(
+                        Function(meal)
+                            Return meal.IngredientDataVersion >=
+                                Meal.CurrentIngredientDataVersion
+                        End Function
+                    )
+                )
+            For index As Integer = 0 To candidates.Count - 1
+                candidates(index).ApplyNormalizedIngredients(
+                    normalizedCatalog(index)
                 )
                 result.UpdatedCount += 1
-            ElseIf itemResult.RetryableFailure IsNot Nothing Then
-                result.RetryableFailures.Add(
-                    New AdvancedMigrationFailure With {
-                        .MealName = itemResult.Meal.Name,
-                        .Error = itemResult.RetryableFailure
-                    }
-                )
-            End If
-        Next
-        Return result
-    End Function
-
-    Private Async Function MigrateIngredientMeasurementsAsync(
-        meal As Meal
-    ) As Task(Of IngredientMigrationItemResult)
-        Dim result As New IngredientMigrationItemResult With {.Meal = meal}
-        Try
-            result.Ingredients = Await API.NormalizeIngredientsAsync(meal)
+            Next
         Catch ex As Exception
-            result.RetryableFailure = ex
+            result.RetryableFailures.Add(
+                New AdvancedMigrationFailure With {
+                    .MealName = "Complete ingredient catalog",
+                    .Error = ex
+                }
+            )
         End Try
         Return result
     End Function
@@ -341,7 +332,7 @@
         If result.RetryableFailures.Count = 0 Then Return
 
         MessageBox.Show(
-            "These recipes could not have their ingredient measurements standardized and will be retried next time:" &
+            "The ingredient catalog could not be canonicalized and will be retried next time:" &
             Environment.NewLine &
             String.Join(
                 Environment.NewLine,
@@ -351,7 +342,7 @@
                     End Function
                 )
             ),
-            "Ingredient measurement migration",
+            "Ingredient catalog migration",
             MessageBoxButtons.OK,
             MessageBoxIcon.Warning
         )

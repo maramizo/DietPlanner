@@ -5,14 +5,18 @@ Recipe pages are parsed locally and sent to Codex CLI for structured nutrition a
 meal-type extraction, including ingredient amounts, preparation directions, and
 focused notes for storage, freezing, reheating, make-ahead guidance, and recipe
 variations.
-Ingredients are stored as a normalized name, numeric quantity, and canonical unit
-rather than an opaque amount string. Existing free-form ingredient lists are
-normalized once on startup by independent parallel Codex runs that use the saved
-ingredient text and do not require the recipe URL.
+Ingredients are stored as a canonical grocery identity, separate non-identity
+details, numeric quantity, and canonical unit rather than an opaque amount string.
+Existing ingredient lists are normalized together in one coordinated catalog-wide
+Codex pass on startup. This gives every recipe the same vocabulary without
+requiring its source URL. New recipe scrapes receive the established canonical
+catalog and reuse an existing identity whenever the grocery item is equivalent.
 Purpose labels do not create duplicate ingredients: entries such as
 `Salt (for filling)` and `Salt (for mash)` normalize to `Salt`, and compatible
 amounts are summed locally. Intrinsic varieties remain distinct, so `Kosher Salt`,
-`Sea Salt`, and plain `Salt` are never merged with one another.
+`Sea Salt`, and plain `Salt` are never merged with one another. Ordinary sizes,
+package sizes, and preparation wording are retained in the separate Details field
+without fragmenting the planner's holistic ingredient list.
 Serving count is stored with each recipe, and scraped calories and nutrients are
 normalized to a per-serving basis. View Details also calculates total batch
 calories from the stored serving count without persisting a redundant total.
@@ -24,9 +28,9 @@ are also enriched once from their saved source URL.
 
 Startup compatibility work fans out every recipe download and Codex extraction
 as an independent asynchronous task. Serving/calorie/ingredient/direction/note
-enrichment, stored-ingredient normalization, and meal-category migration run as
-separate flows at the same time, then save their results together after every
-task has completed.
+enrichment, the coordinated stored-ingredient catalog pass, and meal-category
+migration run as separate flows at the same time, then save their results together
+after every task has completed.
 
 Every meal records its advanced-scrape status as `Pending`, `Complete`, or
 `Unavailable`. Clearly invalid, inaccessible, or incomplete recipe sources are

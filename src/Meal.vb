@@ -3,7 +3,7 @@
     Public Const AdvancedScrapeComplete As String = "Complete"
     Public Const AdvancedScrapeUnavailable As String = "Unavailable"
     Public Const CurrentAdvancedScrapeVersion As Integer = 1
-    Public Const CurrentIngredientDataVersion As Integer = 2
+    Public Const CurrentIngredientDataVersion As Integer = 3
 
     Private Shared ReadOnly MealTypeOrder As String() = {
         "Breakfast",

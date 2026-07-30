@@ -45,6 +45,7 @@ Partial Class AddRecipe
         IngredientsLabel = New Label()
         IngredientsDataGrid = New DataGridView()
         IngredientNameColumn = New DataGridViewTextBoxColumn()
+        IngredientDetailsColumn = New DataGridViewTextBoxColumn()
         IngredientQuantityColumn = New DataGridViewTextBoxColumn()
         IngredientUnitColumn = New DataGridViewTextBoxColumn()
         PreparationMethodLabel = New Label()
@@ -236,6 +237,7 @@ Partial Class AddRecipe
         IngredientsDataGrid.ColumnHeadersHeightSizeMode = DataGridViewColumnHeadersHeightSizeMode.AutoSize
         IngredientsDataGrid.Columns.AddRange(New DataGridViewColumn() {
             IngredientNameColumn,
+            IngredientDetailsColumn,
             IngredientQuantityColumn,
             IngredientUnitColumn
         })
@@ -246,19 +248,25 @@ Partial Class AddRecipe
         '
         ' IngredientNameColumn
         '
-        IngredientNameColumn.FillWeight = 58.0!
+        IngredientNameColumn.FillWeight = 36.0!
         IngredientNameColumn.HeaderText = "Ingredient"
         IngredientNameColumn.Name = "IngredientNameColumn"
         '
+        ' IngredientDetailsColumn
+        '
+        IngredientDetailsColumn.FillWeight = 25.0!
+        IngredientDetailsColumn.HeaderText = "Details"
+        IngredientDetailsColumn.Name = "IngredientDetailsColumn"
+        '
         ' IngredientQuantityColumn
         '
-        IngredientQuantityColumn.FillWeight = 18.0!
+        IngredientQuantityColumn.FillWeight = 21.0!
         IngredientQuantityColumn.HeaderText = "Quantity"
         IngredientQuantityColumn.Name = "IngredientQuantityColumn"
         '
         ' IngredientUnitColumn
         '
-        IngredientUnitColumn.FillWeight = 24.0!
+        IngredientUnitColumn.FillWeight = 18.0!
         IngredientUnitColumn.HeaderText = "Unit"
         IngredientUnitColumn.Name = "IngredientUnitColumn"
         '
@@ -364,6 +372,7 @@ Partial Class AddRecipe
     Friend WithEvents IngredientsLabel As Label
     Friend WithEvents IngredientsDataGrid As DataGridView
     Friend WithEvents IngredientNameColumn As DataGridViewTextBoxColumn
+    Friend WithEvents IngredientDetailsColumn As DataGridViewTextBoxColumn
     Friend WithEvents IngredientQuantityColumn As DataGridViewTextBoxColumn
     Friend WithEvents IngredientUnitColumn As DataGridViewTextBoxColumn
     Friend WithEvents PreparationMethodLabel As Label
