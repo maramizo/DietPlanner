@@ -305,15 +305,15 @@
                     ingredient.Details,
                     If(
                         ingredient.MinAmount.HasValue,
-                        ingredient.MinAmount.Value.ToString(
-                            Globalization.CultureInfo.CurrentCulture
+                        IngredientMeasurementConverter.FormatQuantity(
+                            ingredient.MinAmount.Value
                         ),
                         String.Empty
                     ),
                     If(
                         ingredient.MaxAmount.HasValue,
-                        ingredient.MaxAmount.Value.ToString(
-                            Globalization.CultureInfo.CurrentCulture
+                        IngredientMeasurementConverter.FormatQuantity(
+                            ingredient.MaxAmount.Value
                         ),
                         String.Empty
                     ),

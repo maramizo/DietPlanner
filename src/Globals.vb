@@ -24,6 +24,19 @@ Public Class NutrientInfo
             RecommendedDailyIntakes.Add("Phosphorus", 0.7)
             RecommendedDailyIntakes.Add("Calcium", 1000)
         End Try
+
+        If RecommendedDailyIntakes Is Nothing Then
+            RecommendedDailyIntakes = New Dictionary(Of String, Double)
+        End If
+        If Not RecommendedDailyIntakes.Keys.Any(
+            Function(name) String.Equals(
+                name,
+                "Calories",
+                StringComparison.OrdinalIgnoreCase
+            )
+        ) Then
+            RecommendedDailyIntakes.Add("Calories", 2000)
+        End If
     End Sub
 
     Public Sub Save()

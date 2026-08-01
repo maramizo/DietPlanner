@@ -135,6 +135,26 @@ Public NotInheritable Class IngredientMeasurementConverter
         )
     }
 
+    Private Shared ReadOnly DisplayFractionDenominators As Integer() = {
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16,
+        24
+    }
+    Private Const DisplayFractionTolerance As Double = 0.0005
+
     Private Shared ReadOnly UnitAliases As New Dictionary(Of String, String)(
         StringComparer.OrdinalIgnoreCase
     ) From {
@@ -406,6 +426,10 @@ Public NotInheritable Class IngredientMeasurementConverter
         End If
         Return FormatInvariantNumber(minimum) & "-" &
             FormatInvariantNumber(maximum)
+    End Function
+
+    Public Shared Function FormatQuantity(value As Double) As String
+        Return FormatNumber(value)
     End Function
 
     Public Shared Function FormatAmount(
@@ -1184,8 +1208,54 @@ Public NotInheritable Class IngredientMeasurementConverter
     End Function
 
     Private Shared Function FormatNumber(value As Double) As String
+        If Double.IsNaN(value) OrElse Double.IsInfinity(value) Then
+            Return value.ToString(CultureInfo.CurrentCulture)
+        End If
         Dim absoluteValue = Math.Abs(value)
         If absoluteValue < 0.0000000005 Then Return "0"
+
+        Dim roundedWhole = Math.Round(value)
+        If Math.Abs(value - roundedWhole) < 0.000000001 Then
+            Return roundedWhole.ToString(
+                "0",
+                CultureInfo.CurrentCulture
+            )
+        End If
+
+        Dim wholePart = Math.Floor(absoluteValue)
+        Dim fractionalPart = absoluteValue - wholePart
+        For Each denominator In DisplayFractionDenominators
+            Dim numerator = CInt(
+                Math.Round(
+                    fractionalPart * denominator,
+                    MidpointRounding.AwayFromZero
+                )
+            )
+            If numerator <= 0 OrElse numerator >= denominator Then
+                Continue For
+            End If
+            If Math.Abs(
+                fractionalPart - numerator / CDbl(denominator)
+            ) > DisplayFractionTolerance Then
+                Continue For
+            End If
+
+            Dim divisor = GreatestCommonDivisor(numerator, denominator)
+            numerator \= divisor
+            Dim reducedDenominator = denominator \ divisor
+            Dim sign = If(value < 0, "-", String.Empty)
+            Dim fraction = numerator.ToString(
+                CultureInfo.CurrentCulture
+            ) & "/" & reducedDenominator.ToString(
+                CultureInfo.CurrentCulture
+            )
+            If wholePart < 1 Then Return sign & fraction
+            Return sign & wholePart.ToString(
+                "0",
+                CultureInfo.CurrentCulture
+            ) & " " & fraction
+        Next
+
         Dim decimalPlaces = If(absoluteValue < 0.001, 9, 3)
         Dim format = If(
             decimalPlaces = 9,
@@ -1196,6 +1266,20 @@ Public NotInheritable Class IngredientMeasurementConverter
             format,
             CultureInfo.CurrentCulture
         )
+    End Function
+
+    Private Shared Function GreatestCommonDivisor(
+        first As Integer,
+        second As Integer
+    ) As Integer
+        first = Math.Abs(first)
+        second = Math.Abs(second)
+        While second <> 0
+            Dim remainder = first Mod second
+            first = second
+            second = remainder
+        End While
+        Return Math.Max(1, first)
     End Function
 
     Private Shared Function FormatInvariantNumber(value As Double) As String

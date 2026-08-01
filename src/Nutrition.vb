@@ -21,7 +21,13 @@ Public Class Nutrition
     End Sub
 
     Public Function FormattedAmount() As String
-        If gNutritionals.Contains(Name) Then
+        If String.Equals(
+            Name,
+            "Calories",
+            StringComparison.OrdinalIgnoreCase
+        ) Then
+            Return Amount.ToString("N0") & " kcal"
+        ElseIf gNutritionals.Contains(Name) Then
             Return Amount & " g"
         ElseIf mgNutritionals.Contains(Name) Then
             Return Amount & " mg"
@@ -39,7 +45,7 @@ Public Class Nutrition
 
         text = Regex.Replace(
             text,
-            "\s*(?:mg|g)\s*$",
+            "\s*(?:mg|g|kcal|calories?)\s*$",
             String.Empty,
             RegexOptions.IgnoreCase
         ).Trim()

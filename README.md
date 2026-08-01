@@ -71,15 +71,18 @@ Select **View Details** to inspect a recipe. Select **Save Changes** after you c
 2. Choose the meal types that you want to plan.
 3. Choose a generation mode.
 4. Check the recipes that the plan must use.
-5. Open the **Ingredients** tab and clear ingredients that you do not want.
-6. Select **Generate / Shuffle and Save Week**.
+5. Optionally enable **Vary serving sizes (1/2–2) to improve targets**.
+6. Open the **Ingredients** tab and clear ingredients that you do not want.
+7. Select **Generate / Shuffle and Save Week**.
 
 The two generation modes use your recipe choices differently:
 
 - **Only selected recipes** uses only checked recipes. Each checked recipe appears at least once.
-- **Generate freely from all recipes** can use the full collection. Each checked recipe still appears at least once.
+- **Generate freely from all recipes** can use the full collection and tries to include every checked recipe. If the checked recipes cannot all fit, DietPlanner fills as many guarantees as possible and identifies the recipes left out of that shuffle.
 
-The result shows each day, calorie totals, nutrition coverage, and a combined ingredient list. The list includes enough whole recipe batches.
+The result shows each day, its serving sizes, calorie totals, nutrition coverage, and a combined ingredient list. When serving-size optimization is enabled, each meal can range from 1/2 to 2 servings in 1/4-serving steps. The planner uses the editable daily calorie and nutrition targets; the default calorie target is 2,000, and a value of `0` disables it. Open **View Daily Facts**, then **Change my Recommended Intake**, to edit these targets.
+
+The ingredient list includes enough whole recipe batches for all planned portions.
 
 Matching ingredients use one compatible measurement. Change a row's **Measurement** list to convert its displayed amount locally.
 
@@ -90,6 +93,8 @@ DietPlanner saves these measurement choices with the weekly plan. Select the gen
 Select **Settings** to choose a theme, font, font size, and ingredient measurement system.
 
 Ingredient amounts can use standardized source units, US customary units, or metric units. DietPlanner converts these amounts without another Codex request.
+
+Display quantities use readable whole and mixed fractions when possible, while stored source values remain unchanged.
 
 ## Build from source
 

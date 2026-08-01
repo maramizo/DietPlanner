@@ -10,6 +10,7 @@ Public Class WeekPlanner
     Private _ingredientResultsPage As TabPage
     Private _planIngredientsDataGrid As DataGridView
     Private _updatingPlanIngredientMeasurements As Boolean
+    Private _optimizeServingSizesCheckBox As CheckBox
 
     Private Class RecipeChoice
         Public ReadOnly Property Meal As Meal
@@ -63,6 +64,20 @@ Public Class WeekPlanner
         StatusLabel.Location = New Point(20, 724)
         StatusLabel.Size = New Size(290, 46)
         CloseButton.Location = New Point(1135, 732)
+
+        _optimizeServingSizesCheckBox = New CheckBox With {
+            .Anchor = AnchorStyles.Top Or AnchorStyles.Right,
+            .AutoSize = True,
+            .Location = New Point(800, 16),
+            .Name = "OptimizeServingSizesCheckBox",
+            .TabIndex = 8,
+            .Text = "Vary serving sizes (1/2–2) to improve targets",
+            .UseVisualStyleBackColor = True
+        }
+        AddHandler _optimizeServingSizesCheckBox.CheckedChanged,
+            AddressOf OptimizeServingSizesCheckBox_CheckedChanged
+        Controls.Add(_optimizeServingSizesCheckBox)
+        _optimizeServingSizesCheckBox.BringToFront()
 
         _constraintTabs = New TabControl With {
             .Anchor = AnchorStyles.Top Or AnchorStyles.Bottom Or AnchorStyles.Left,
@@ -244,7 +259,7 @@ Public Class WeekPlanner
             .AutoSize = True,
             .Dock = DockStyle.Fill,
             .Name = "PlanIngredientsHelpLabel",
-            .Text = "Totals include enough whole recipe batches for every planned meal slot."
+            .Text = "Totals include enough whole recipe batches for all planned serving sizes."
         }
         _planIngredientsDataGrid = New DataGridView With {
             .AllowUserToAddRows = False,
@@ -372,6 +387,8 @@ Public Class WeekPlanner
 
         _currentPlan = savedPlan
         RestoreSavedGenerationMode(savedPlan)
+        _optimizeServingSizesCheckBox.Checked =
+            savedPlan.OptimizeServingSizes
         RestoreSavedMealTypes(plannedMealTypes)
         RestoreSavedSelection(savedPlan)
         RestoreSavedIngredientSelection(savedPlan)
@@ -604,7 +621,9 @@ Public Class WeekPlanner
                 availableMeals,
                 generationMode,
                 plannedMealTypes,
-                nutrientInfo.RecommendedDailyIntakes
+                nutrientInfo.RecommendedDailyIntakes,
+                optimizeServingSizes:=
+                    _optimizeServingSizesCheckBox.Checked
             )
             _currentPlan.IngredientDisplayMeasurements = displayMeasurements
             _currentPlan.IngredientFilterApplied =
@@ -617,17 +636,40 @@ Public Class WeekPlanner
                     ToList()
             WeekPlanRepository.Save(_currentPlan)
             DisplayPlan(_currentPlan)
+            Dim unscheduledGuarantees = If(
+                _currentPlan.UnscheduledGuaranteedRecipeNames,
+                New List(Of String)
+            )
             If generationMode =
                 WeekPlanGenerationMode.FullCatalogWithGuarantees Then
-                StatusLabel.Text =
-                    "Shuffled from the full catalog with checked recipes guaranteed; saved at " &
-                    _currentPlan.GeneratedAt.ToString("t") &
-                    "."
+                If unscheduledGuarantees.Count > 0 Then
+                    Dim requestedCount = If(
+                        _currentPlan.SelectedRecipeNames,
+                        New List(Of String)
+                    ).Count
+                    StatusLabel.Text =
+                        "Generated with " &
+                        Math.Max(0, requestedCount - unscheduledGuarantees.Count) &
+                        " of " & requestedCount &
+                        " checked recipes guaranteed; saved at " &
+                        _currentPlan.GeneratedAt.ToString("t") & "."
+                Else
+                    StatusLabel.Text =
+                        "Shuffled from the full catalog with checked recipes guaranteed; saved at " &
+                        _currentPlan.GeneratedAt.ToString("t") &
+                        "."
+                End If
             Else
                 StatusLabel.Text =
                     "Shuffled using only checked recipes; saved at " &
                     _currentPlan.GeneratedAt.ToString("t") &
                     "."
+            End If
+            If unscheduledGuarantees.Count > 0 Then
+                ShowPartialGuaranteeWarning(
+                    _currentPlan.SelectedRecipeNames.Count,
+                    unscheduledGuarantees
+                )
             End If
         Catch ex As WeeklyPlanException
             MessageBox.Show(
@@ -646,6 +688,39 @@ Public Class WeekPlanner
                 MessageBoxIcon.Error
             )
         End Try
+    End Sub
+
+    Private Sub ShowPartialGuaranteeWarning(
+        requestedCount As Integer,
+        unscheduledGuarantees As List(Of String)
+    )
+        Dim scheduledCount = Math.Max(
+            0,
+            requestedCount - unscheduledGuarantees.Count
+        )
+        Dim displayedNames = unscheduledGuarantees.Take(12).ToList()
+        Dim omittedCount = unscheduledGuarantees.Count - displayedNames.Count
+        Dim details = String.Join(
+            Environment.NewLine,
+            displayedNames.Select(Function(name) "• " & name)
+        )
+        If omittedCount > 0 Then
+            details &= Environment.NewLine &
+                "• …and " & omittedCount & " more"
+        End If
+
+        MessageBox.Show(
+            "Only " & scheduledCount & " of " & requestedCount &
+            " checked recipes fit into the selected weekly schedule. " &
+            "DietPlanner still generated the plan with as many as possible." &
+            Environment.NewLine & Environment.NewLine &
+            "Not guaranteed this time:" & Environment.NewLine &
+            details & Environment.NewLine & Environment.NewLine &
+            "A different subset may fit the next time you shuffle.",
+            "Some recipes could not be guaranteed",
+            MessageBoxButtons.OK,
+            MessageBoxIcon.Warning
+        )
     End Sub
 
     Private Function GetIngredientEligibleMeals(
@@ -758,6 +833,13 @@ Public Class WeekPlanner
         SetReadyStatus()
     End Sub
 
+    Private Sub OptimizeServingSizesCheckBox_CheckedChanged(
+        sender As Object,
+        e As EventArgs
+    )
+        SetReadyStatus()
+    End Sub
+
     Private Sub UpdateGenerationModeCopy()
         If FullCatalogRadioButton.Checked Then
             GenerationModeHelpLabel.Text =
@@ -810,11 +892,31 @@ Public Class WeekPlanner
 
             Dim rowIndex = PlanDataGrid.Rows.Add(
                 day.Name,
-                GetMealName(mealsByType, "Breakfast"),
-                GetMealName(mealsByType, "Brunch"),
-                GetMealName(mealsByType, "Lunch"),
-                GetMealName(mealsByType, "Dinner"),
-                GetMealName(mealsByType, "Snack"),
+                GetMealName(
+                    mealsByType,
+                    "Breakfast",
+                    plan.OptimizeServingSizes
+                ),
+                GetMealName(
+                    mealsByType,
+                    "Brunch",
+                    plan.OptimizeServingSizes
+                ),
+                GetMealName(
+                    mealsByType,
+                    "Lunch",
+                    plan.OptimizeServingSizes
+                ),
+                GetMealName(
+                    mealsByType,
+                    "Dinner",
+                    plan.OptimizeServingSizes
+                ),
+                GetMealName(
+                    mealsByType,
+                    "Snack",
+                    plan.OptimizeServingSizes
+                ),
                 totalCalories.ToString("N0"),
                 (coverage * 100).ToString("0") & "%"
             )
@@ -871,8 +973,11 @@ Public Class WeekPlanner
                 servingsPerBatch = currentMeal.Servings
             End If
             servingsPerBatch = Math.Max(1, servingsPerBatch)
+            Dim plannedServings = recipeGroup.Sum(
+                Function(meal) meal.GetPlannedServings()
+            )
             Dim batches = Math.Ceiling(
-                recipeGroup.Count() / CDbl(servingsPerBatch)
+                plannedServings / servingsPerBatch
             )
             For Each ingredient In ingredients
                 entries.Add(New IngredientAmountEntry(ingredient, batches))
@@ -1037,10 +1142,21 @@ Public Class WeekPlanner
 
     Private Shared Function GetMealName(
         mealsByType As Dictionary(Of String, PlannedMeal),
-        mealType As String
+        mealType As String,
+        showServingSize As Boolean
     ) As String
         If mealsByType.ContainsKey(mealType) Then
-            Return mealsByType(mealType).MealName
+            Dim plannedMeal = mealsByType(mealType)
+            If Not showServingSize Then Return plannedMeal.MealName
+            Dim servingSize = plannedMeal.GetPlannedServings()
+            Return plannedMeal.MealName & " (" &
+                IngredientMeasurementConverter.FormatQuantity(servingSize) &
+                " " &
+                If(
+                    Math.Abs(servingSize - 1) < 0.0000001,
+                    "serving",
+                    "servings"
+                ) & ")"
         End If
         Return "—"
     End Function
@@ -1094,6 +1210,13 @@ Public Class WeekPlanner
         meal As PlannedMeal,
         nutrientName As String
     ) As Double
+        If String.Equals(
+            nutrientName,
+            "Calories",
+            StringComparison.OrdinalIgnoreCase
+        ) Then
+            Return meal.Calories
+        End If
         If meal.Nutritionals Is Nothing Then Return 0
         For Each item In meal.Nutritionals
             If String.Equals(
