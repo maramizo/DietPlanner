@@ -24,8 +24,43 @@ Module API
     Public Async Function ScrapeNutritionals(url As String) As Task(Of Meal)
         Dim recipeUri = CreateRecipeUri(url)
         Dim recipeContext = Await DownloadRecipeContextAsync(recipeUri)
+        Return Await ScrapeNutritionalsFromContextAsync(
+            url,
+            recipeContext,
+            allowInteractiveCodex:=True
+        )
+    End Function
+
+    Public Async Function ScrapeNutritionalsFromHtml(
+        url As String,
+        html As String
+    ) As Task(Of Meal)
+        Dim recipeUri = CreateRecipeUri(url)
+        If String.IsNullOrWhiteSpace(html) Then
+            Throw New RecipeSourceUnavailableException(
+                "The browser did not provide readable page HTML."
+            )
+        End If
+        If html.Length > MaxDownloadedCharacters Then
+            Throw New RecipeSourceUnavailableException(
+                "The browser page is too large to process safely."
+            )
+        End If
+
+        Return Await ScrapeNutritionalsFromContextAsync(
+            url,
+            BuildRecipeContext(recipeUri, html),
+            allowInteractiveCodex:=False
+        )
+    End Function
+
+    Private Async Function ScrapeNutritionalsFromContextAsync(
+        url As String,
+        recipeContext As String,
+        allowInteractiveCodex As Boolean
+    ) As Task(Of Meal)
         Dim extractionInput = BuildRecipeExtractionInput(recipeContext)
-        Dim codexPath = Await EnsureCodexReadyAsync()
+        Dim codexPath = Await EnsureCodexReadyAsync(allowInteractiveCodex)
         Dim result = Await ExtractNutritionalsWithCodexAsync(
             codexPath,
             extractionInput
@@ -209,16 +244,33 @@ Module API
                         New JProperty("Details", ingredient.Details),
                         New JProperty("Amount", ingredient.Amount),
                         New JProperty(
-                            "Quantity",
+                            "MinAmount",
                             If(
-                                ingredient.Quantity.HasValue,
+                                ingredient.MinAmount.HasValue,
                                 JToken.FromObject(
-                                    ingredient.Quantity.Value
+                                    ingredient.MinAmount.Value
                                 ),
                                 JValue.CreateNull()
                             )
                         ),
-                        New JProperty("Unit", ingredient.Unit)
+                        New JProperty(
+                            "MaxAmount",
+                            If(
+                                ingredient.MaxAmount.HasValue,
+                                JToken.FromObject(
+                                    ingredient.MaxAmount.Value
+                                ),
+                                JValue.CreateNull()
+                            )
+                        ),
+                        New JProperty(
+                            "Measurement",
+                            ingredient.Measurement
+                        ),
+                        New JProperty(
+                            "OriginalMeasurement",
+                            ingredient.OriginalMeasurement
+                        )
                     )
                 )
             Next
@@ -256,8 +308,8 @@ Module API
             "Index exactly once. " &
             IngredientMeasurementInstructions() &
             "Use RecipeName only as context for resolving ambiguous ingredient wording. Use the saved Ingredient and " &
-            "Amount as the primary source when Amount is present. When a row already has a supported Quantity and Unit " &
-            "and Amount is empty, preserve that exact Quantity and Unit. " &
+            "Amount as the primary source when Amount is present. When a row already has valid MinAmount, MaxAmount, " &
+            "Measurement, and OriginalMeasurement values, preserve those values exactly. " &
             "Do not add, remove, combine, or invent ingredients."
         Dim result = Await RunCodexStructuredAsync(
             codexPath,
@@ -275,7 +327,7 @@ Module API
                 normalizedByIndex.ContainsKey(index) Then
                 Continue For
             End If
-            normalizedByIndex(index) = normalized.ToObject(Of RecipeIngredient)()
+            normalizedByIndex(index) = ParseExtractedIngredient(normalized)
         Next
         If normalizedByIndex.Count <> ingredientLocations.Count Then
             Throw New InvalidDataException(
@@ -515,18 +567,22 @@ Module API
         builder.Append(value.Substring(0, Math.Min(value.Length, remaining)))
     End Sub
 
-    Private Function EnsureCodexReadyAsync() As Task(Of String)
+    Private Function EnsureCodexReadyAsync(
+        Optional allowInteractive As Boolean = True
+    ) As Task(Of String)
         SyncLock CodexReadyLock
             If CodexReadyTask Is Nothing OrElse
                 CodexReadyTask.IsCanceled OrElse
                 CodexReadyTask.IsFaulted Then
-                CodexReadyTask = InitializeCodexAsync()
+                CodexReadyTask = InitializeCodexAsync(allowInteractive)
             End If
             Return CodexReadyTask
         End SyncLock
     End Function
 
-    Private Async Function InitializeCodexAsync() As Task(Of String)
+    Private Async Function InitializeCodexAsync(
+        allowInteractive As Boolean
+    ) As Task(Of String)
         Dim codexPath = FindCodexExecutable()
         If codexPath Is Nothing Then
             codexPath = Await InstallCodexAsync()
@@ -534,6 +590,12 @@ Module API
 
         Dim status = Await RunProcessAsync(codexPath, {"login", "status"})
         If status.ExitCode = 0 Then Return codexPath
+
+        If Not allowInteractive Then
+            Throw New InvalidOperationException(
+                "Codex needs your ChatGPT sign-in. Open DietPlanner and use Scrape once to finish Codex setup, then retry this page."
+            )
+        End If
 
         MessageBox.Show(
             "DietPlanner installed Codex CLI, but Codex still needs your ChatGPT sign-in." &
@@ -644,7 +706,7 @@ Module API
             "Use nutrition values exactly as published per serving, and do not otherwise calculate or invent them. " &
             "Return grams for Protein, Fat, Carbs, Dietary Fiber, Trans Fat, Saturated Fat, and Sugar. " &
             "Return milligrams for Sodium, Potassium, Phosphorus, Calcium, Iron, and Cholesterol. " &
-            "Convert units when necessary, use 0 for a missing nutrient, and express Prep and Cook as whole minutes. " &
+            "Convert nutrient units when necessary, use 0 for a missing nutrient, and express Prep and Cook as whole minutes. " &
             "Select one or more genuinely applicable MealTypes from Breakfast, Brunch, Lunch, Dinner, and Snack. " &
             MealTypeInstructions() &
             AdvancedRecipeDetailsInstructions()
@@ -696,7 +758,7 @@ Module API
     End Function
 
     Private Function AdvancedRecipeDetailsInstructions() As String
-        Return "Extract every published ingredient as a structured Ingredient, Details, Quantity, and Unit. " &
+        Return "Extract every published ingredient as structured source data. " &
             IngredientMeasurementInstructions() &
             "Write every " &
             "ingredient and direction in polished, properly capitalized English; never return all-lowercase or all-caps text. " &
@@ -730,22 +792,35 @@ Module API
             "Those identity-bearing qualifiers must remain in Ingredient and must never be moved to Details. Ground is " &
             "identity-bearing for ginger, so Ground Ginger must remain Ingredient Ground Ginger rather than Ingredient " &
             "Ginger with Details ground. When the source measures the juice of one whole lemon or lime, use Ingredient " &
-            "Lemon or Lime, Details juiced, Quantity 1, and Unit piece; use Ingredient Lemon Juice or Lime Juice only for " &
+            "Lemon or Lime, Details juiced, Amount 1, MinAmount 1, MaxAmount 1, and Measurement piece; use Ingredient " &
+            "Lemon Juice or Lime Juice only for " &
             "a volume measurement of juice. " &
             "Remove recipe-section, purpose, and usage annotations entirely: Salt (for filling), Salt (for mash), Salt " &
             "for serving, and Salt, divided all use Ingredient Salt. When the same grocery ingredient appears more than " &
             "once, return the exact same Ingredient identity for every row; DietPlanner combines compatible quantities " &
             "locally. " &
-            "Return Quantity as one non-negative number, converting mixed numbers and fractions to decimals without changing " &
-            "the source measurement system. For a published range, use its lower bound. Choose Unit only from teaspoon, " &
-            "tablespoon, fluid ounce, cup, pint, quart, gallon, milliliter, liter, ounce, pound, gram, kilogram, piece, clove, " &
-            "slice, can, package, bunch, pinch, dash, to taste, or none. Use piece for a counted whole item, to taste when the " &
-            "source explicitly says to taste, and none with Quantity 0 only when no quantity is published. Use singular, " &
-            "lowercase canonical Unit values exactly as listed. "
+            "Never convert an ingredient amount, fraction, measurement, or measurement system. Return Amount as the exact " &
+            "published quantity text without the measurement, such as 1, 1/2, 1 1/2, 1-2, or to taste. Return MinAmount " &
+            "and MaxAmount as strings that contain the source numeric bounds. For one exact amount, return the same source " &
+            "text in both fields. For a range, MinAmount is the inclusive lower bound and MaxAmount is the inclusive upper " &
+            "bound; never discard either bound. For example, source text 1 1/2 to 2 cups becomes Amount 1 1/2 to 2, " &
+            "MinAmount 1 1/2, MaxAmount 2, Measurement cup, and OriginalMeasurement cups. Preserve source fractions " &
+            "instead of calculating decimals. For to taste, " &
+            "as needed, or an ingredient with no published quantity, return empty MinAmount and MaxAmount strings. " &
+            "Choose Measurement only from teaspoon, tablespoon, fluid ounce, cup, pint, quart, gallon, milliliter, liter, " &
+            "milligram, gram, kilogram, ounce, pound, piece, clove, slice, can, package, bunch, pinch, dash, to taste, or " &
+            "none. Measurement is only the normalized name of the source unit; it is not a converted unit. Return " &
+            "OriginalMeasurement as the exact unit wording published by the source, such as g, grams, oz., or cups. Use an " &
+            "empty OriginalMeasurement for an implicit counted item. Use piece for a counted whole item, to taste only when " &
+            "the source explicitly says to taste, and none when the source gives no usable amount or says as needed. Use " &
+            "singular, lowercase canonical Measurement values exactly as listed. "
     End Function
 
     Private Function ParseAdvancedRecipeDetails(parsed As JObject) As AdvancedRecipeDetails
-        Dim ingredients = parsed("Ingredients").ToObject(Of List(Of RecipeIngredient))()
+        Dim ingredients = parsed("Ingredients").
+            Children(Of JObject)().
+            Select(Function(token) ParseExtractedIngredient(token)).
+            ToList()
         Dim preparationMethod = FormatPreparationMethod(
             DirectCast(parsed("PreparationMethod"), JObject)
         )
@@ -791,6 +866,57 @@ Module API
             notes,
             servings,
             caloriesPerServing
+        )
+    End Function
+
+    Private Function ParseExtractedIngredient(
+        ingredient As JObject
+    ) As RecipeIngredient
+        If ingredient Is Nothing Then
+            Throw New InvalidDataException(
+                "Codex returned an empty ingredient."
+            )
+        End If
+
+        Dim measurement = IngredientMeasurementConverter.NormalizeUnit(
+            ingredient.Value(Of String)("Measurement")
+        )
+        If measurement = String.Empty Then
+            Throw New InvalidDataException(
+                "Codex returned an unsupported ingredient measurement."
+            )
+        End If
+
+        Dim minimum As Double? = Nothing
+        Dim maximum As Double? = Nothing
+        If measurement <> "to taste" AndAlso measurement <> "none" Then
+            Dim parsedMinimum As Double
+            Dim parsedMaximum As Double
+            If Not IngredientMeasurementConverter.TryParseQuantity(
+                ingredient.Value(Of String)("MinAmount"),
+                parsedMinimum
+            ) OrElse Not IngredientMeasurementConverter.TryParseQuantity(
+                ingredient.Value(Of String)("MaxAmount"),
+                parsedMaximum
+            ) OrElse parsedMaximum < parsedMinimum Then
+                Throw New InvalidDataException(
+                    "Codex returned an invalid ingredient amount range."
+                )
+            End If
+            minimum = parsedMinimum
+            maximum = parsedMaximum
+        End If
+
+        Return New RecipeIngredient(
+            ingredient.Value(Of String)("Ingredient"),
+            amount:=ingredient.Value(Of String)("Amount"),
+            details:=ingredient.Value(Of String)("Details"),
+            minAmount:=minimum,
+            maxAmount:=maximum,
+            measurement:=measurement,
+            originalMeasurement:=ingredient.Value(Of String)(
+                "OriginalMeasurement"
+            )
         )
     End Function
 

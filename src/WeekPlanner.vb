@@ -9,6 +9,7 @@ Public Class WeekPlanner
     Private _resultsTabs As TabControl
     Private _ingredientResultsPage As TabPage
     Private _planIngredientsDataGrid As DataGridView
+    Private _updatingPlanIngredientMeasurements As Boolean
 
     Private Class RecipeChoice
         Public ReadOnly Property Meal As Meal
@@ -243,7 +244,7 @@ Public Class WeekPlanner
             .AutoSize = True,
             .Dock = DockStyle.Fill,
             .Name = "PlanIngredientsHelpLabel",
-            .Text = "Totals assume one serving for each planned meal slot."
+            .Text = "Totals include enough whole recipe batches for every planned meal slot."
         }
         _planIngredientsDataGrid = New DataGridView With {
             .AllowUserToAddRows = False,
@@ -253,13 +254,13 @@ Public Class WeekPlanner
                 DataGridViewColumnHeadersHeightSizeMode.AutoSize,
             .Dock = DockStyle.Fill,
             .Name = "PlanIngredientsDataGrid",
-            .ReadOnly = True,
+            .ReadOnly = False,
             .RowHeadersVisible = False,
-            .SelectionMode = DataGridViewSelectionMode.FullRowSelect
+            .SelectionMode = DataGridViewSelectionMode.CellSelect
         }
         _planIngredientsDataGrid.Columns.Add(
             New DataGridViewTextBoxColumn With {
-                .FillWeight = 65,
+                .FillWeight = 55,
                 .HeaderText = "Ingredient",
                 .Name = "PlannedIngredientColumn",
                 .ReadOnly = True
@@ -267,12 +268,27 @@ Public Class WeekPlanner
         )
         _planIngredientsDataGrid.Columns.Add(
             New DataGridViewTextBoxColumn With {
-                .FillWeight = 35,
+                .FillWeight = 25,
                 .HeaderText = "Amount for planned week",
                 .Name = "PlannedIngredientAmountColumn",
                 .ReadOnly = True
             }
         )
+        _planIngredientsDataGrid.Columns.Add(
+            New DataGridViewComboBoxColumn With {
+                .DisplayStyle = DataGridViewComboBoxDisplayStyle.DropDownButton,
+                .FillWeight = 20,
+                .FlatStyle = FlatStyle.Flat,
+                .HeaderText = "Measurement",
+                .Name = "PlannedIngredientMeasurementColumn"
+            }
+        )
+        AddHandler _planIngredientsDataGrid.CurrentCellDirtyStateChanged,
+            AddressOf PlanIngredientsDataGrid_CurrentCellDirtyStateChanged
+        AddHandler _planIngredientsDataGrid.CellValueChanged,
+            AddressOf PlanIngredientsDataGrid_CellValueChanged
+        AddHandler _planIngredientsDataGrid.DataError,
+            AddressOf PlanIngredientsDataGrid_DataError
         ingredientsLayout.Controls.Add(ingredientsSummaryLabel, 0, 0)
         ingredientsLayout.Controls.Add(_planIngredientsDataGrid, 0, 1)
         _ingredientResultsPage.Controls.Add(ingredientsLayout)
@@ -576,6 +592,13 @@ Public Class WeekPlanner
         Try
             Dim availableMeals = GetIngredientEligibleMeals(selectedMeals)
             Dim nutrientInfo As New NutrientInfo()
+            Dim displayMeasurements = New Dictionary(Of String, String)(
+                If(
+                    _currentPlan?.IngredientDisplayMeasurements,
+                    New Dictionary(Of String, String)()
+                ),
+                StringComparer.OrdinalIgnoreCase
+            )
             _currentPlan = WeekPlanGenerator.Generate(
                 selectedMeals,
                 availableMeals,
@@ -583,6 +606,7 @@ Public Class WeekPlanner
                 plannedMealTypes,
                 nutrientInfo.RecommendedDailyIntakes
             )
+            _currentPlan.IngredientDisplayMeasurements = displayMeasurements
             _currentPlan.IngredientFilterApplied =
                 _ingredientChoicesCheckedListBox.CheckedItems.Count <
                 _ingredientChoicesCheckedListBox.Items.Count
@@ -817,29 +841,41 @@ Public Class WeekPlanner
         If plan Is Nothing OrElse plan.Days Is Nothing Then Return
 
         Dim entries As New List(Of IngredientAmountEntry)
-        For Each day In plan.Days
-            If day Is Nothing OrElse day.Meals Is Nothing Then Continue For
-            For Each plannedMeal In day.Meals
-                If plannedMeal Is Nothing Then Continue For
-                Dim currentMeal = FindCurrentMeal(plannedMeal)
-                Dim ingredients = If(
-                    plannedMeal.Ingredients IsNot Nothing AndAlso
-                    plannedMeal.Ingredients.Count > 0,
-                    plannedMeal.Ingredients,
-                    If(
-                        currentMeal?.Ingredients,
-                        New List(Of RecipeIngredient)
-                    )
-                )
-                Dim servings = plannedMeal.RecipeServings
-                If servings < 1 AndAlso currentMeal IsNot Nothing Then
-                    servings = currentMeal.Servings
+        Dim plannedMeals = plan.Days.
+            Where(Function(day) day IsNot Nothing AndAlso day.Meals IsNot Nothing).
+            SelectMany(Function(day) day.Meals).
+            Where(Function(meal) meal IsNot Nothing).
+            ToList()
+        For Each recipeGroup In plannedMeals.GroupBy(
+            Function(plannedMeal)
+                If Not String.IsNullOrWhiteSpace(plannedMeal.RecipeUrl) Then
+                    Return "url|" & plannedMeal.RecipeUrl.Trim()
                 End If
-                servings = Math.Max(1, servings)
-                Dim scale = 1.0 / servings
-                For Each ingredient In ingredients
-                    entries.Add(New IngredientAmountEntry(ingredient, scale))
-                Next
+                Return "name|" & If(plannedMeal.MealName, String.Empty).Trim()
+            End Function,
+            StringComparer.OrdinalIgnoreCase
+        )
+            Dim plannedMeal = recipeGroup.First()
+            Dim currentMeal = FindCurrentMeal(plannedMeal)
+            Dim ingredients = If(
+                plannedMeal.Ingredients IsNot Nothing AndAlso
+                plannedMeal.Ingredients.Count > 0,
+                plannedMeal.Ingredients,
+                If(
+                    currentMeal?.Ingredients,
+                    New List(Of RecipeIngredient)
+                )
+            )
+            Dim servingsPerBatch = plannedMeal.RecipeServings
+            If servingsPerBatch < 1 AndAlso currentMeal IsNot Nothing Then
+                servingsPerBatch = currentMeal.Servings
+            End If
+            servingsPerBatch = Math.Max(1, servingsPerBatch)
+            Dim batches = Math.Ceiling(
+                recipeGroup.Count() / CDbl(servingsPerBatch)
+            )
+            For Each ingredient In ingredients
+                entries.Add(New IngredientAmountEntry(ingredient, batches))
             Next
         Next
 
@@ -847,15 +883,122 @@ Public Class WeekPlanner
             IngredientMeasurementConverter.NormalizeSystem(
                 AppSettingsRepository.Load().IngredientMeasurementSystem
             )
-        For Each total In IngredientMeasurementConverter.Aggregate(
-            entries,
-            measurementSystem
-        )
-            _planIngredientsDataGrid.Rows.Add(
-                total.Ingredient,
-                total.Amount
+        If plan.IngredientDisplayMeasurements Is Nothing Then
+            plan.IngredientDisplayMeasurements =
+                New Dictionary(Of String, String)(
+                    StringComparer.OrdinalIgnoreCase
+                )
+        End If
+
+        _updatingPlanIngredientMeasurements = True
+        Try
+            _planIngredientsDataGrid.Rows.Clear()
+            For Each total In IngredientMeasurementConverter.Aggregate(
+                entries,
+                measurementSystem
             )
-        Next
+                Dim displayMeasurement = total.DefaultMeasurement
+                Dim savedMeasurement As String = Nothing
+                If plan.IngredientDisplayMeasurements.TryGetValue(
+                    total.Key,
+                    savedMeasurement
+                ) Then
+                    savedMeasurement =
+                        IngredientMeasurementConverter.NormalizeUnit(
+                            savedMeasurement
+                        )
+                    If total.CompatibleMeasurements.Contains(
+                        savedMeasurement,
+                        StringComparer.OrdinalIgnoreCase
+                    ) Then
+                        displayMeasurement = savedMeasurement
+                    End If
+                End If
+
+                Dim rowIndex = _planIngredientsDataGrid.Rows.Add(
+                    total.Ingredient,
+                    total.FormatAmount(displayMeasurement),
+                    Nothing
+                )
+                Dim row = _planIngredientsDataGrid.Rows(rowIndex)
+                row.Tag = total
+                Dim measurementCell = DirectCast(
+                    row.Cells("PlannedIngredientMeasurementColumn"),
+                    DataGridViewComboBoxCell
+                )
+                If total.CompatibleMeasurements.Count = 0 Then
+                    measurementCell.ReadOnly = True
+                Else
+                    measurementCell.Items.AddRange(
+                        total.CompatibleMeasurements.
+                            Cast(Of Object)().
+                            ToArray()
+                    )
+                    measurementCell.Value = displayMeasurement
+                End If
+            Next
+        Finally
+            _updatingPlanIngredientMeasurements = False
+        End Try
+    End Sub
+
+    Private Sub PlanIngredientsDataGrid_CurrentCellDirtyStateChanged(
+        sender As Object,
+        e As EventArgs
+    )
+        If _planIngredientsDataGrid.IsCurrentCellDirty AndAlso
+            TypeOf _planIngredientsDataGrid.CurrentCell Is
+                DataGridViewComboBoxCell Then
+            _planIngredientsDataGrid.CommitEdit(
+                DataGridViewDataErrorContexts.Commit
+            )
+        End If
+    End Sub
+
+    Private Sub PlanIngredientsDataGrid_CellValueChanged(
+        sender As Object,
+        e As DataGridViewCellEventArgs
+    )
+        If _updatingPlanIngredientMeasurements OrElse e.RowIndex < 0 OrElse
+            e.ColumnIndex < 0 OrElse
+            _planIngredientsDataGrid.Columns(e.ColumnIndex).Name <>
+                "PlannedIngredientMeasurementColumn" Then
+            Return
+        End If
+
+        Dim row = _planIngredientsDataGrid.Rows(e.RowIndex)
+        Dim total = TryCast(row.Tag, ConsolidatedIngredient)
+        If total Is Nothing Then Return
+        Dim measurement = IngredientMeasurementConverter.NormalizeUnit(
+            Convert.ToString(
+                row.Cells("PlannedIngredientMeasurementColumn").Value
+            )
+        )
+        If Not total.CompatibleMeasurements.Contains(
+            measurement,
+            StringComparer.OrdinalIgnoreCase
+        ) Then
+            Return
+        End If
+
+        row.Cells("PlannedIngredientAmountColumn").Value =
+            total.FormatAmount(measurement)
+        If _currentPlan Is Nothing Then Return
+        If _currentPlan.IngredientDisplayMeasurements Is Nothing Then
+            _currentPlan.IngredientDisplayMeasurements =
+                New Dictionary(Of String, String)(
+                    StringComparer.OrdinalIgnoreCase
+                )
+        End If
+        _currentPlan.IngredientDisplayMeasurements(total.Key) = measurement
+        WeekPlanRepository.Save(_currentPlan)
+    End Sub
+
+    Private Sub PlanIngredientsDataGrid_DataError(
+        sender As Object,
+        e As DataGridViewDataErrorEventArgs
+    )
+        e.ThrowException = False
     End Sub
 
     Private Sub UpdatePlanColumns(plannedMealTypes As IEnumerable(Of String))

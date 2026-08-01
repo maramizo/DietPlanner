@@ -64,8 +64,41 @@ Public Class RecipeIngredient
     Public Property Ingredient As String
     Public Property Details As String
     Public Property Amount As String
+    Public Property MinAmount As Double?
+    Public Property MaxAmount As Double?
+    Public Property Measurement As String
+    Public Property OriginalMeasurement As String
+
+    ' Quantity and Unit only exist as backwards-compatible JSON aliases. New
+    ' files store the full range and the source measurement instead.
     Public Property Quantity As Double?
+        Get
+            Return MinAmount
+        End Get
+        Set(value As Double?)
+            MinAmount = NormalizeAmount(value)
+            If MinAmount.HasValue AndAlso Not MaxAmount.HasValue Then
+                MaxAmount = MinAmount
+            End If
+        End Set
+    End Property
+
     Public Property Unit As String
+        Get
+            Return Measurement
+        End Get
+        Set(value As String)
+            Measurement = IngredientMeasurementConverter.NormalizeUnit(value)
+        End Set
+    End Property
+
+    Public Function ShouldSerializeQuantity() As Boolean
+        Return False
+    End Function
+
+    Public Function ShouldSerializeUnit() As Boolean
+        Return False
+    End Function
 
     <Newtonsoft.Json.JsonConstructor>
     Public Sub New(
@@ -73,7 +106,11 @@ Public Class RecipeIngredient
         Optional amount As String = Nothing,
         Optional quantity As Double? = Nothing,
         Optional unit As String = Nothing,
-        Optional details As String = Nothing
+        Optional details As String = Nothing,
+        Optional minAmount As Double? = Nothing,
+        Optional maxAmount As Double? = Nothing,
+        Optional measurement As String = Nothing,
+        Optional originalMeasurement As String = Nothing
     )
         Dim inferredDetails = String.Empty
         Me.Ingredient = NormalizeIngredientIdentity(
@@ -82,38 +119,108 @@ Public Class RecipeIngredient
         )
         Me.Details = MergeDetails(details, inferredDetails)
         Me.Amount = If(amount, String.Empty).Trim()
-        Me.Quantity = If(
-            quantity.HasValue AndAlso
-            Not Double.IsNaN(quantity.Value) AndAlso
-            Not Double.IsInfinity(quantity.Value) AndAlso
-            quantity.Value >= 0,
-            quantity,
-            Nothing
-        )
-        Me.Unit = IngredientMeasurementConverter.NormalizeUnit(unit)
+        Me.MinAmount = NormalizeAmount(If(minAmount, quantity))
+        Me.MaxAmount = NormalizeAmount(maxAmount)
+        If Me.MinAmount.HasValue AndAlso Not Me.MaxAmount.HasValue Then
+            Me.MaxAmount = Me.MinAmount
+        End If
+        If Me.MinAmount.HasValue AndAlso Me.MaxAmount.HasValue AndAlso
+            Me.MaxAmount.Value < Me.MinAmount.Value Then
+            Me.MaxAmount = Me.MinAmount
+        End If
 
-        If Not Me.Quantity.HasValue AndAlso Me.Amount <> String.Empty Then
-            Dim parsedQuantity As Double
-            Dim parsedUnit As String = Nothing
-            If IngredientMeasurementConverter.TryParseLegacyAmount(
+        Dim sourceMeasurement = If(
+            String.IsNullOrWhiteSpace(measurement),
+            unit,
+            measurement
+        )
+        Dim hasSourceMeasurement =
+            Not String.IsNullOrWhiteSpace(sourceMeasurement)
+        Me.Measurement =
+            IngredientMeasurementConverter.NormalizeUnit(sourceMeasurement)
+        Dim hasOriginalMeasurement = originalMeasurement IsNot Nothing
+        Me.OriginalMeasurement = If(
+            hasOriginalMeasurement,
+            originalMeasurement,
+            If(sourceMeasurement, String.Empty)
+        ).Trim()
+
+        If Not Me.MinAmount.HasValue AndAlso Me.Amount <> String.Empty Then
+            Dim parsedMin As Double
+            Dim parsedMax As Double
+            Dim parsedMeasurement As String = Nothing
+            If IngredientMeasurementConverter.TryParseLegacyAmountRange(
                 Me.Amount,
-                parsedQuantity,
-                parsedUnit
+                parsedMin,
+                parsedMax,
+                parsedMeasurement
             ) Then
-                Me.Quantity = parsedQuantity
-                Me.Unit = parsedUnit
+                If parsedMeasurement <> "to taste" AndAlso
+                    parsedMeasurement <> "none" Then
+                    Me.MinAmount = parsedMin
+                    Me.MaxAmount = parsedMax
+                End If
+                If Me.Measurement = String.Empty Then
+                    Me.Measurement = parsedMeasurement
+                End If
+                If Me.OriginalMeasurement = String.Empty AndAlso
+                    Not hasOriginalMeasurement Then
+                    Me.OriginalMeasurement = parsedMeasurement
+                End If
             End If
         End If
-        If Me.Quantity.HasValue AndAlso Me.Unit = String.Empty Then
-            Me.Unit = If(Me.Quantity.Value > 0, "piece", "none")
+        If Me.Measurement = String.Empty Then
+            If Not hasSourceMeasurement AndAlso Me.MinAmount.HasValue Then
+                Me.Measurement = If(
+                    Me.MaxAmount.GetValueOrDefault() > 0,
+                    "piece",
+                    "none"
+                )
+            ElseIf Not hasSourceMeasurement AndAlso Me.Amount = String.Empty Then
+                Me.Measurement = "none"
+            End If
+        End If
+        If Me.Measurement = "to taste" OrElse Me.Measurement = "none" Then
+            Me.MinAmount = Nothing
+            Me.MaxAmount = Nothing
+        End If
+        If Me.OriginalMeasurement = String.Empty AndAlso
+            Not hasOriginalMeasurement Then
+            Me.OriginalMeasurement = Me.Measurement
+        End If
+        If Me.Amount = String.Empty AndAlso Me.MinAmount.HasValue Then
+            Me.Amount = IngredientMeasurementConverter.FormatSourceAmount(
+                Me.MinAmount.Value,
+                Me.MaxAmount.Value
+            )
         End If
         ApplyIdentityBearingDetails()
         ApplyMeasurementIdentityRules()
     End Sub
 
     Public Function HasStructuredMeasurement() As Boolean
-        Return Quantity.HasValue AndAlso
-            IngredientMeasurementConverter.IsSupportedUnit(Unit)
+        If Not IngredientMeasurementConverter.IsSupportedUnit(Measurement) Then
+            Return False
+        End If
+        If Measurement = "to taste" OrElse Measurement = "none" Then
+            Return True
+        End If
+        Return MinAmount.HasValue AndAlso MaxAmount.HasValue AndAlso
+            MinAmount.Value >= 0 AndAlso MaxAmount.Value >= MinAmount.Value
+    End Function
+
+    Public Function TryGetAmountRange(
+        ByRef minimum As Double,
+        ByRef maximum As Double
+    ) As Boolean
+        minimum = 0
+        maximum = 0
+        If Not MinAmount.HasValue OrElse Not MaxAmount.HasValue Then
+            Return False
+        End If
+        minimum = MinAmount.Value
+        maximum = MaxAmount.Value
+        Return maximum >= minimum
     End Function
 
     Public Function DisplayAmount(Optional system As String = Nothing) As String
@@ -128,11 +235,23 @@ Public Class RecipeIngredient
     Public Function Clone() As RecipeIngredient
         Return New RecipeIngredient(
             Ingredient,
-            Amount,
-            Quantity,
-            Unit,
-            Details
+            amount:=Amount,
+            details:=Details,
+            minAmount:=MinAmount,
+            maxAmount:=MaxAmount,
+            measurement:=Measurement,
+            originalMeasurement:=OriginalMeasurement
         )
+    End Function
+
+    Private Shared Function NormalizeAmount(value As Double?) As Double?
+        If Not value.HasValue OrElse
+            Double.IsNaN(value.Value) OrElse
+            Double.IsInfinity(value.Value) OrElse
+            value.Value < 0 Then
+            Return Nothing
+        End If
+        Return value
     End Function
 
     Public Shared Function NormalizeIngredientName(value As String) As String
@@ -494,7 +613,7 @@ Public Class RecipeIngredient
 
     Private Sub ApplyMeasurementIdentityRules()
         If Not String.Equals(
-            Unit,
+            Measurement,
             "piece",
             StringComparison.OrdinalIgnoreCase
         ) Then

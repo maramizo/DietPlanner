@@ -55,6 +55,7 @@ Partial Class MainWindow
         PlanWeekButton = New Button()
         ViewAllRecipesButton = New Button()
         SettingsButton = New Button()
+        BrowserExtensionButton = New Button()
         SuspendLayout()
         '
         ' ComboBox1
@@ -379,11 +380,21 @@ Partial Class MainWindow
         SettingsButton.Text = "Settings"
         SettingsButton.UseVisualStyleBackColor = True
         '
+        ' BrowserExtensionButton
+        '
+        BrowserExtensionButton.Location = New Point(15, 258)
+        BrowserExtensionButton.Name = "BrowserExtensionButton"
+        BrowserExtensionButton.Size = New Size(180, 27)
+        BrowserExtensionButton.TabIndex = 38
+        BrowserExtensionButton.Text = "Browser Extension"
+        BrowserExtensionButton.UseVisualStyleBackColor = True
+        '
         ' MainWindow
         '
         AutoScaleDimensions = New SizeF(7F, 15F)
         AutoScaleMode = AutoScaleMode.Font
-        ClientSize = New Size(620, 263)
+        ClientSize = New Size(620, 298)
+        Controls.Add(BrowserExtensionButton)
         Controls.Add(SettingsButton)
         Controls.Add(ViewAllRecipesButton)
         Controls.Add(PlanWeekButton)
@@ -457,5 +468,6 @@ Partial Class MainWindow
     Friend WithEvents PlanWeekButton As Button
     Friend WithEvents ViewAllRecipesButton As Button
     Friend WithEvents SettingsButton As Button
+    Friend WithEvents BrowserExtensionButton As Button
 
 End Class

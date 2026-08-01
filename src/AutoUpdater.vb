@@ -314,7 +314,10 @@ Public NotInheritable Class AutoUpdater
         For Each requiredFile In {
             "DietPlanner.exe",
             "DietPlanner.dll",
-            "DietPlanner.runtimeconfig.json"
+            "DietPlanner.runtimeconfig.json",
+            Path.Combine("BrowserExtension", "manifest.json"),
+            Path.Combine("BrowserExtension", "service-worker.js"),
+            Path.Combine("BrowserExtension", "icon.png")
         }
             If Not File.Exists(Path.Combine(stagingDirectory, requiredFile)) Then
                 Throw New InvalidDataException(

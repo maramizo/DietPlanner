@@ -50,6 +50,7 @@ Partial Class RecipeView
         IngredientNameColumn = New DataGridViewTextBoxColumn()
         IngredientDetailsColumn = New DataGridViewTextBoxColumn()
         IngredientAmountColumn = New DataGridViewTextBoxColumn()
+        IngredientMeasurementColumn = New DataGridViewComboBoxColumn()
         PreparationMethodLabel = New Label()
         PreparationMethodTextBox = New TextBox()
         NotesLabel = New Label()
@@ -267,34 +268,44 @@ Partial Class RecipeView
         IngredientsDataGrid.Columns.AddRange(New DataGridViewColumn() {
             IngredientNameColumn,
             IngredientDetailsColumn,
-            IngredientAmountColumn
+            IngredientAmountColumn,
+            IngredientMeasurementColumn
         })
         IngredientsDataGrid.Location = New Point(460, 45)
         IngredientsDataGrid.Name = "IngredientsDataGrid"
-        IngredientsDataGrid.ReadOnly = True
-        IngredientsDataGrid.Size = New Size(410, 180)
+        IngredientsDataGrid.ReadOnly = False
+        IngredientsDataGrid.RowHeadersVisible = False
+        IngredientsDataGrid.Size = New Size(510, 180)
         IngredientsDataGrid.TabIndex = 12
         '
         ' IngredientNameColumn
         '
-        IngredientNameColumn.FillWeight = 40.0!
+        IngredientNameColumn.FillWeight = 32.0!
         IngredientNameColumn.HeaderText = "Ingredient"
         IngredientNameColumn.Name = "IngredientNameColumn"
         IngredientNameColumn.ReadOnly = True
         '
         ' IngredientDetailsColumn
         '
-        IngredientDetailsColumn.FillWeight = 32.0!
+        IngredientDetailsColumn.FillWeight = 25.0!
         IngredientDetailsColumn.HeaderText = "Details"
         IngredientDetailsColumn.Name = "IngredientDetailsColumn"
         IngredientDetailsColumn.ReadOnly = True
         '
         ' IngredientAmountColumn
         '
-        IngredientAmountColumn.FillWeight = 28.0!
+        IngredientAmountColumn.FillWeight = 18.0!
         IngredientAmountColumn.HeaderText = "Amount"
         IngredientAmountColumn.Name = "IngredientAmountColumn"
         IngredientAmountColumn.ReadOnly = True
+        '
+        ' IngredientMeasurementColumn
+        '
+        IngredientMeasurementColumn.DisplayStyle = DataGridViewComboBoxDisplayStyle.DropDownButton
+        IngredientMeasurementColumn.FillWeight = 25.0!
+        IngredientMeasurementColumn.FlatStyle = FlatStyle.Flat
+        IngredientMeasurementColumn.HeaderText = "Measurement"
+        IngredientMeasurementColumn.Name = "IngredientMeasurementColumn"
         '
         ' PreparationMethodLabel
         '
@@ -313,7 +324,7 @@ Partial Class RecipeView
         PreparationMethodTextBox.Name = "PreparationMethodTextBox"
         PreparationMethodTextBox.ReadOnly = True
         PreparationMethodTextBox.ScrollBars = ScrollBars.Vertical
-        PreparationMethodTextBox.Size = New Size(410, 178)
+        PreparationMethodTextBox.Size = New Size(510, 178)
         PreparationMethodTextBox.TabIndex = 14
         '
         ' NotesLabel
@@ -333,14 +344,14 @@ Partial Class RecipeView
         NotesTextBox.Name = "NotesTextBox"
         NotesTextBox.ReadOnly = True
         NotesTextBox.ScrollBars = ScrollBars.Vertical
-        NotesTextBox.Size = New Size(410, 117)
+        NotesTextBox.Size = New Size(510, 117)
         NotesTextBox.TabIndex = 18
         '
         ' RecipeView
         '
         AutoScaleDimensions = New SizeF(7F, 15F)
         AutoScaleMode = AutoScaleMode.Font
-        ClientSize = New Size(900, 660)
+        ClientSize = New Size(1000, 660)
         Controls.Add(BatchCaloriesValueLabel)
         Controls.Add(BatchCaloriesTitleLabel)
         Controls.Add(CaloriesPerServingValueLabel)
@@ -366,7 +377,7 @@ Partial Class RecipeView
         Controls.Add(Label2)
         Controls.Add(Label1)
         Controls.Add(DataGridView1)
-        MinimumSize = New Size(916, 699)
+        MinimumSize = New Size(1016, 699)
         Name = "RecipeView"
         StartPosition = FormStartPosition.CenterScreen
         Text = "View Recipe"
@@ -403,6 +414,7 @@ Partial Class RecipeView
     Friend WithEvents IngredientNameColumn As DataGridViewTextBoxColumn
     Friend WithEvents IngredientDetailsColumn As DataGridViewTextBoxColumn
     Friend WithEvents IngredientAmountColumn As DataGridViewTextBoxColumn
+    Friend WithEvents IngredientMeasurementColumn As DataGridViewComboBoxColumn
     Friend WithEvents PreparationMethodLabel As Label
     Friend WithEvents PreparationMethodTextBox As TextBox
     Friend WithEvents NotesLabel As Label

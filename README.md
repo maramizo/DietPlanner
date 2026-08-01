@@ -31,11 +31,23 @@ DietPlanner checks for a new release when it starts. An update keeps your saved 
 
 The scrape fills the name, servings, calories, nutrition, meal types, ingredients, and cooking steps. It also adds relevant storage, freezing, reheating, and variation notes.
 
+DietPlanner stores each source amount, range, normalized measurement, and original unit text. Codex does not convert ingredient measurements.
+
 DietPlanner installs Codex CLI when it first needs it. Codex uses your ChatGPT sign-in, so you do not need an API key file.
 
 Codex CLI runs on your computer. Recipe extraction still uses OpenAI's online service.
 
 The recipe page must be available without a website sign-in. DietPlanner marks a permanently unavailable source and does not retry it at each start.
+
+## Add recipes from your browser
+
+1. Select **Browser Extension** in DietPlanner.
+2. Select **Set Up Google Chrome** or **Set Up Microsoft Edge**.
+3. On the browser's Extensions page, turn on **Developer mode** and select **Load unpacked**.
+4. Choose the bundled `BrowserExtension` folder that DietPlanner opened. Its path is also copied to the clipboard.
+5. Open a recipe page, select the DietPlanner extension, and select **Add Current Recipe**.
+
+The popup keeps a status list: yellow means the recipe is in progress, green means it was added, and red shows an error. You can send pages from several tabs without waiting; DietPlanner processes them in parallel. The Windows app does not need to be open.
 
 ## Choose meals for a day
 
@@ -67,7 +79,11 @@ The two generation modes use your recipe choices differently:
 - **Only selected recipes** uses only checked recipes. Each checked recipe appears at least once.
 - **Generate freely from all recipes** can use the full collection. Each checked recipe still appears at least once.
 
-The result shows each day, calorie totals, nutrition coverage, and a combined ingredient list. Select the generate button again to create another random plan.
+The result shows each day, calorie totals, nutrition coverage, and a combined ingredient list. The list includes enough whole recipe batches.
+
+Matching ingredients use one compatible measurement. Change a row's **Measurement** list to convert its displayed amount locally.
+
+DietPlanner saves these measurement choices with the weekly plan. Select the generate button again to create another random plan.
 
 ## Change the appearance and units
 

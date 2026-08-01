@@ -12,6 +12,7 @@ Public Class WeeklyPlan
     Public Property RandomSeed As Integer
     Public Property IngredientFilterApplied As Boolean
     Public Property AllowedIngredientNames As List(Of String)
+    Public Property IngredientDisplayMeasurements As Dictionary(Of String, String)
 
     Public Sub New()
         Days = New List(Of PlannedDay)
@@ -20,6 +21,9 @@ Public Class WeeklyPlan
         SelectedRecipeNames = New List(Of String)
         PlannedMealTypes = New List(Of String)(WeekPlanGenerator.MealTypes)
         AllowedIngredientNames = New List(Of String)
+        IngredientDisplayMeasurements = New Dictionary(Of String, String)(
+            StringComparer.OrdinalIgnoreCase
+        )
         GenerationMode = WeekPlanGenerationMode.SelectedRecipesOnly.ToString()
     End Sub
 End Class

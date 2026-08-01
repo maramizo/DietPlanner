@@ -106,7 +106,7 @@ Public Class RecipeCatalog
             meal.SetMealTypes(mealTypes)
         Next
 
-        MealRepository.SaveAll(_meals)
+        MealRepository.MergeAll(_meals)
         MealRepository.SaveCurrentCategoryVersion()
         DialogResult = DialogResult.OK
         Close()

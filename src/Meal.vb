@@ -2,8 +2,8 @@
     Public Const AdvancedScrapePending As String = "Pending"
     Public Const AdvancedScrapeComplete As String = "Complete"
     Public Const AdvancedScrapeUnavailable As String = "Unavailable"
-    Public Const CurrentAdvancedScrapeVersion As Integer = 1
-    Public Const CurrentIngredientDataVersion As Integer = 3
+    Public Const CurrentAdvancedScrapeVersion As Integer = 2
+    Public Const CurrentIngredientDataVersion As Integer = 4
 
     Private Shared ReadOnly MealTypeOrder As String() = {
         "Breakfast",
@@ -116,6 +116,22 @@
                     End Function
                 )
             )
+    End Function
+
+    Public Function UpgradeIngredientMeasurementData() As Boolean
+        If IngredientDataVersion >= CurrentIngredientDataVersion OrElse
+            Ingredients Is Nothing OrElse Ingredients.Count = 0 OrElse
+            Ingredients.Any(
+                Function(ingredient)
+                    Return ingredient Is Nothing OrElse
+                        Not ingredient.HasStructuredMeasurement()
+                End Function
+            ) Then
+            Return False
+        End If
+
+        IngredientDataVersion = CurrentIngredientDataVersion
+        Return True
     End Function
 
     Public Sub ApplyAdvancedDetails(details As AdvancedRecipeDetails)

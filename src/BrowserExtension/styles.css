@@ -1,0 +1,217 @@
+:root {
+  color-scheme: light;
+  font-family: "Segoe UI Variable Text", "Segoe UI", sans-serif;
+  color: #20302a;
+  background: #f7faf7;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  width: 420px;
+  min-height: 220px;
+  margin: 0;
+  background: linear-gradient(160deg, #f8fbf8 0%, #eef6f0 100%);
+}
+
+main {
+  padding: 18px;
+}
+
+.heading {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  margin-bottom: 16px;
+}
+
+.heading img {
+  border-radius: 10px;
+  box-shadow: 0 3px 10px rgb(31 74 54 / 14%);
+}
+
+h1,
+h2,
+p {
+  margin: 0;
+}
+
+h1 {
+  font-size: 19px;
+  line-height: 1.2;
+}
+
+.heading p {
+  margin-top: 2px;
+  color: #63726b;
+  font-size: 12px;
+}
+
+button {
+  font: inherit;
+}
+
+.primary {
+  width: 100%;
+  min-height: 42px;
+  border: 0;
+  border-radius: 9px;
+  color: #fff;
+  background: #307756;
+  font-weight: 650;
+  cursor: pointer;
+  box-shadow: 0 3px 9px rgb(26 91 62 / 18%);
+}
+
+.primary:hover {
+  background: #286548;
+}
+
+.primary:focus-visible,
+.text-button:focus-visible {
+  outline: 3px solid #87bda1;
+  outline-offset: 2px;
+}
+
+.primary:disabled {
+  cursor: wait;
+  opacity: 0.68;
+}
+
+.action-message {
+  min-height: 17px;
+  margin: 7px 2px 5px;
+  color: #9b2c2c;
+  font-size: 12px;
+}
+
+.section-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 4px;
+  border-bottom: 1px solid #dce8df;
+  padding-bottom: 7px;
+}
+
+h2 {
+  font-size: 14px;
+}
+
+.text-button {
+  border: 0;
+  padding: 4px;
+  color: #397358;
+  background: transparent;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.text-button:disabled {
+  color: #8b9690;
+  cursor: default;
+}
+
+.empty-state {
+  padding: 18px 6px 8px;
+  color: #68766f;
+  text-align: center;
+  font-size: 12px;
+}
+
+.job-list {
+  display: grid;
+  gap: 8px;
+  max-height: 350px;
+  margin: 10px 0 0;
+  padding: 0;
+  overflow-y: auto;
+  list-style: none;
+}
+
+.job {
+  display: grid;
+  grid-template-columns: 25px minmax(0, 1fr);
+  gap: 7px;
+  border: 1px solid;
+  border-radius: 8px;
+  padding: 9px;
+  background: #fff;
+}
+
+.job.in_progress {
+  border-color: #d5aa44;
+  background: #fff9e8;
+}
+
+.job.completed {
+  border-color: #70ad86;
+  background: #effaf2;
+}
+
+.job.failed {
+  border-color: #d48a8a;
+  background: #fff2f2;
+}
+
+.status-icon {
+  font-size: 17px;
+  line-height: 1.25;
+  text-align: center;
+}
+
+.completed .status-icon {
+  color: #19733c;
+  font-weight: 750;
+}
+
+.failed .status-icon {
+  color: #b22929;
+  font-weight: 750;
+}
+
+.job-url {
+  display: block;
+  overflow: hidden;
+  color: #26372f;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.35;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.job-recipe-name {
+  display: block;
+  overflow: hidden;
+  color: #185f36;
+  font-size: 13px;
+  font-weight: 750;
+  line-height: 1.35;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.completed .job-url {
+  margin-top: 2px;
+  color: #52645a;
+  font-weight: 450;
+}
+
+.job-message,
+.job-error {
+  margin-top: 3px;
+  font-size: 11px;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
+.job-message {
+  color: #5c6b63;
+}
+
+.job-error {
+  color: #9b2c2c;
+}

@@ -11,6 +11,12 @@
         For Each nutritional As String In AllNutritionals
             NutritionalsDataGrid.Rows.Add(nutritional, "")
         Next
+        IngredientUnitColumn.Items.Clear()
+        IngredientUnitColumn.Items.AddRange(
+            IngredientMeasurementConverter.SupportedUnits.
+                Cast(Of Object)().
+                ToArray()
+        )
     End Sub
 
     Private Sub DataGridView_CellFormatting(sender As Object, e As DataGridViewCellFormattingEventArgs) Handles NutritionalsDataGrid.CellFormatting
@@ -40,6 +46,7 @@
 
     Private Sub SaveButton_Click(sender As Object, e As EventArgs) Handles SaveButton.Click
         NutritionalsDataGrid.EndEdit()
+        IngredientsDataGrid.EndEdit()
         Dim nutritionals As New Dictionary(Of String, Double)
 
         'Check that all data is entered
@@ -61,6 +68,17 @@
         Dim servings As Integer
         If Not Integer.TryParse(ServingsTextBox.Text, servings) OrElse servings < 1 Then
             MessageBox.Show("Servings must be a positive whole number.")
+            Return
+        End If
+
+        Dim prepTime As Integer
+        If Not TryParseOptionalMinutes(PrepTimeTextBox.Text, prepTime) Then
+            MessageBox.Show("Prep time must be a non-negative whole number of minutes.")
+            Return
+        End If
+        Dim cookTime As Integer
+        If Not TryParseOptionalMinutes(CookTimeTextBox.Text, cookTime) Then
+            MessageBox.Show("Cook time must be a non-negative whole number of minutes.")
             Return
         End If
 
@@ -103,11 +121,13 @@
 
             Dim ingredientName = Convert.ToString(row.Cells(0).Value).Trim()
             Dim ingredientDetails = Convert.ToString(row.Cells(1).Value).Trim()
-            Dim quantityText = Convert.ToString(row.Cells(2).Value).Trim()
-            Dim unitText = Convert.ToString(row.Cells(3).Value).Trim()
+            Dim minimumText = Convert.ToString(row.Cells(2).Value).Trim()
+            Dim maximumText = Convert.ToString(row.Cells(3).Value).Trim()
+            Dim unitText = Convert.ToString(row.Cells(4).Value).Trim()
             If ingredientName = "" AndAlso
                 ingredientDetails = "" AndAlso
-                quantityText = "" AndAlso
+                minimumText = "" AndAlso
+                maximumText = "" AndAlso
                 unitText = "" Then
                 Continue For
             End If
@@ -116,38 +136,92 @@
                 Return
             End If
 
-            Dim quantity As Double = 0
-            If quantityText <> "" AndAlso
-                Not IngredientMeasurementConverter.TryParseQuantity(
-                    quantityText,
-                    quantity
-                ) Then
-                MessageBox.Show(
-                    "Ingredient quantities must be non-negative numbers."
-                )
-                Return
-            End If
-
             Dim unit = IngredientMeasurementConverter.NormalizeUnit(unitText)
             If unitText <> "" AndAlso unit = "" Then
                 MessageBox.Show(
                     "'" &
                     unitText &
-                    "' is not a supported ingredient unit." &
-                    Environment.NewLine &
-                    "Use a standard unit such as cup, tablespoon, gram, ounce, piece, or to taste."
+                    "' is not a supported ingredient measurement."
                 )
                 Return
             End If
             If unit = "" Then
-                unit = If(quantity > 0, "piece", "none")
+                unit = If(minimumText <> "", "piece", "none")
+            End If
+
+            Dim minimum As Double? = Nothing
+            Dim maximum As Double? = Nothing
+            If unit <> "to taste" AndAlso unit <> "none" Then
+                Dim parsedMinimum As Double
+                Dim parsedMaximum As Double
+                If minimumText = "" OrElse
+                    Not IngredientMeasurementConverter.TryParseQuantity(
+                        minimumText,
+                        parsedMinimum
+                    ) Then
+                    MessageBox.Show(
+                        "Each measured ingredient needs a non-negative minimum amount."
+                    )
+                    Return
+                End If
+                If maximumText = "" Then maximumText = minimumText
+                If Not IngredientMeasurementConverter.TryParseQuantity(
+                    maximumText,
+                    parsedMaximum
+                ) OrElse parsedMaximum < parsedMinimum Then
+                    MessageBox.Show(
+                        "The maximum ingredient amount must be at least the minimum amount."
+                    )
+                    Return
+                End If
+                minimum = parsedMinimum
+                maximum = parsedMaximum
+            ElseIf minimumText <> "" OrElse maximumText <> "" Then
+                MessageBox.Show(
+                    "Leave both amount fields empty for 'to taste' or 'none'."
+                )
+                Return
+            End If
+
+            Dim sourceAmount As String
+            Dim originalMeasurement = unitText
+            If unit = "to taste" Then
+                sourceAmount = "to taste"
+            ElseIf unit = "none" Then
+                sourceAmount = "as needed"
+            ElseIf Math.Abs(minimum.Value - maximum.Value) < 0.000000001 Then
+                sourceAmount = minimumText
+            Else
+                sourceAmount = minimumText & "-" & maximumText
+            End If
+
+            Dim scrapedIngredient = TryCast(row.Tag, RecipeIngredient)
+            If scrapedIngredient IsNot Nothing AndAlso
+                String.Equals(
+                    scrapedIngredient.Measurement,
+                    unit,
+                    StringComparison.OrdinalIgnoreCase
+                ) Then
+                originalMeasurement = scrapedIngredient.OriginalMeasurement
+                If AmountsMatch(
+                    scrapedIngredient.MinAmount,
+                    minimum
+                ) AndAlso AmountsMatch(
+                    scrapedIngredient.MaxAmount,
+                    maximum
+                ) Then
+                    sourceAmount = scrapedIngredient.Amount
+                End If
             End If
             ingredients.Add(
                 New RecipeIngredient(
                     ingredientName,
-                    quantity:=quantity,
-                    unit:=unit,
-                    details:=ingredientDetails
+                    amount:=sourceAmount,
+                    details:=ingredientDetails,
+                    minAmount:=minimum,
+                    maxAmount:=maximum,
+                    measurement:=unit,
+                    originalMeasurement:=originalMeasurement
                 )
             )
         Next
@@ -159,8 +233,8 @@
             nutritionals,
             RecipeTextBox.Text,
             servings,
-            PrepTimeTextBox.Text,
-            CookTimeTextBox.Text,
+            prepTime,
+            cookTime,
             mealTypes,
             ingredients,
             PreparationMethodTextBox.Text,
@@ -172,9 +246,18 @@
                 Math.Max(0, Meal.CurrentIngredientDataVersion - 1)
             )
         )
-        Dim meals = MealRepository.LoadAll()
-        meals.Add(meal)
-        MealRepository.SaveAll(meals)
+        Dim addResult = MealRepository.AddIfMissing(meal)
+        If Not addResult.Added Then
+            MessageBox.Show(
+                "That recipe is already in DietPlanner as '" &
+                addResult.Meal.Name &
+                "'.",
+                "Recipe already added",
+                MessageBoxButtons.OK,
+                MessageBoxIcon.Information
+            )
+            Return
+        End If
         Close()
     End Sub
 
@@ -217,18 +300,26 @@
 
             IngredientsDataGrid.Rows.Clear()
             For Each ingredient In meal.Ingredients
-                IngredientsDataGrid.Rows.Add(
+                Dim ingredientRowIndex = IngredientsDataGrid.Rows.Add(
                     ingredient.Ingredient,
                     ingredient.Details,
                     If(
-                        ingredient.Quantity.HasValue,
-                        ingredient.Quantity.Value.ToString(
+                        ingredient.MinAmount.HasValue,
+                        ingredient.MinAmount.Value.ToString(
                             Globalization.CultureInfo.CurrentCulture
                         ),
                         String.Empty
                     ),
-                    ingredient.Unit
+                    If(
+                        ingredient.MaxAmount.HasValue,
+                        ingredient.MaxAmount.Value.ToString(
+                            Globalization.CultureInfo.CurrentCulture
+                        ),
+                        String.Empty
+                    ),
+                    ingredient.Measurement
                 )
+                IngredientsDataGrid.Rows(ingredientRowIndex).Tag = ingredient
             Next
             _ingredientsWereScraped = True
             PreparationMethodTextBox.Text = meal.PreparationMethod
@@ -245,4 +336,23 @@
             loader.Close()
         End Try
     End Sub
+
+    Private Shared Function AmountsMatch(
+        first As Double?,
+        second As Double?
+    ) As Boolean
+        If first.HasValue <> second.HasValue Then Return False
+        If Not first.HasValue Then Return True
+        Return Math.Abs(first.Value - second.Value) < 0.000000001
+    End Function
+
+    Private Shared Function TryParseOptionalMinutes(
+        value As String,
+        ByRef minutes As Integer
+    ) As Boolean
+        minutes = 0
+        Dim text = If(value, String.Empty).Trim()
+        Return text = String.Empty OrElse
+            (Integer.TryParse(text, minutes) AndAlso minutes >= 0)
+    End Function
 End Class

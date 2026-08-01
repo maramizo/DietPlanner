@@ -1,0 +1,27 @@
+{
+  "manifest_version": 3,
+  "name": "DietPlanner Recipe Importer",
+  "version": "1.0.0",
+  "description": "Send the current recipe page to the DietPlanner Windows app.",
+  "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAxQTZmufb+5M9nQveQ5atNeShYQOR2UN3baY+8OeiYARYKtnZ5XbRpBEsEfXf+qbCxwrEBfCF27x1OwUqcSfTJLMYUvwGr/phwMv0GGEUrXT6HplZmkHNJKwlvye4llUj7Qs0vp/WryGPY0e1FXeVwHMgwWGWbvM30gmouWgyxkwiHu5sfqxlP3BVbMNNDD56NfDgbfE2+j0qVv34rSR6zoN+4liWDbUwDcvGzmMu96osGPjXJ3j460QehScCitJDtkuh+zDYZGlxBDnsxvlRn2z3fKCdxH20lTxyWIn8fJBWfP3ClZQmBa7VtuJTjh5vw/9h4/3vWQdeo7xIAu8JjQIDAQAB",
+  "permissions": [
+    "activeTab",
+    "nativeMessaging",
+    "scripting",
+    "storage"
+  ],
+  "background": {
+    "service_worker": "service-worker.js"
+  },
+  "action": {
+    "default_title": "Add recipe to DietPlanner",
+    "default_popup": "popup.html",
+    "default_icon": "icon.png"
+  },
+  "icons": {
+    "16": "icon.png",
+    "32": "icon.png",
+    "48": "icon.png",
+    "128": "icon.png"
+  }
+}

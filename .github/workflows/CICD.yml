@@ -41,6 +41,19 @@ jobs:
         shell: pwsh
         run: dotnet restore .\src\DietPlanner.sln
 
+      - name: Validate browser extension
+        shell: pwsh
+        run: |
+          $manifest = Get-Content -LiteralPath .\src\BrowserExtension\manifest.json -Raw | ConvertFrom-Json
+          if ($manifest.manifest_version -ne 3) {
+            throw "The bundled browser extension must use Manifest V3."
+          }
+          if ($manifest.background.service_worker -ne "service-worker.js") {
+            throw "The bundled browser extension service worker is not configured."
+          }
+          node --check .\src\BrowserExtension\service-worker.js
+          node --check .\src\BrowserExtension\popup.js
+
       - name: Publish Windows application
         shell: pwsh
         run: |
@@ -60,6 +73,20 @@ jobs:
         run: |
           if (Test-Path -LiteralPath .\publish\data) {
             throw "Release packages must never contain the user's data directory."
+          }
+          $extensionFiles = @(
+            "manifest.json",
+            "service-worker.js",
+            "popup.html",
+            "popup.js",
+            "styles.css",
+            "icon.png"
+          )
+          foreach ($extensionFile in $extensionFiles) {
+            $extensionPath = Join-Path .\publish\BrowserExtension $extensionFile
+            if (!(Test-Path -LiteralPath $extensionPath -PathType Leaf)) {
+              throw "The release is missing BrowserExtension/$extensionFile."
+            }
           }
           Compress-Archive -Path .\publish\* -DestinationPath .\release.zip -CompressionLevel Optimal
           $hash = (Get-FileHash -LiteralPath .\release.zip -Algorithm SHA256).Hash.ToLowerInvariant()

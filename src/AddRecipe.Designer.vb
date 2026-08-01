@@ -47,7 +47,8 @@ Partial Class AddRecipe
         IngredientNameColumn = New DataGridViewTextBoxColumn()
         IngredientDetailsColumn = New DataGridViewTextBoxColumn()
         IngredientQuantityColumn = New DataGridViewTextBoxColumn()
-        IngredientUnitColumn = New DataGridViewTextBoxColumn()
+        IngredientMaxQuantityColumn = New DataGridViewTextBoxColumn()
+        IngredientUnitColumn = New DataGridViewComboBoxColumn()
         PreparationMethodLabel = New Label()
         PreparationMethodTextBox = New TextBox()
         NotesLabel = New Label()
@@ -138,7 +139,7 @@ Partial Class AddRecipe
         ' CancelButton
         '
         CancelButton.Anchor = AnchorStyles.Bottom Or AnchorStyles.Right
-        CancelButton.Location = New Point(712, 622)
+        CancelButton.Location = New Point(842, 622)
         CancelButton.Name = "CancelButton"
         CancelButton.Size = New Size(108, 23)
         CancelButton.TabIndex = 23
@@ -239,35 +240,45 @@ Partial Class AddRecipe
             IngredientNameColumn,
             IngredientDetailsColumn,
             IngredientQuantityColumn,
+            IngredientMaxQuantityColumn,
             IngredientUnitColumn
         })
         IngredientsDataGrid.Location = New Point(390, 45)
         IngredientsDataGrid.Name = "IngredientsDataGrid"
-        IngredientsDataGrid.Size = New Size(430, 180)
+        IngredientsDataGrid.RowHeadersVisible = False
+        IngredientsDataGrid.Size = New Size(560, 180)
         IngredientsDataGrid.TabIndex = 17
         '
         ' IngredientNameColumn
         '
-        IngredientNameColumn.FillWeight = 36.0!
+        IngredientNameColumn.FillWeight = 28.0!
         IngredientNameColumn.HeaderText = "Ingredient"
         IngredientNameColumn.Name = "IngredientNameColumn"
         '
         ' IngredientDetailsColumn
         '
-        IngredientDetailsColumn.FillWeight = 25.0!
+        IngredientDetailsColumn.FillWeight = 22.0!
         IngredientDetailsColumn.HeaderText = "Details"
         IngredientDetailsColumn.Name = "IngredientDetailsColumn"
         '
         ' IngredientQuantityColumn
         '
-        IngredientQuantityColumn.FillWeight = 21.0!
-        IngredientQuantityColumn.HeaderText = "Quantity"
+        IngredientQuantityColumn.FillWeight = 14.0!
+        IngredientQuantityColumn.HeaderText = "Min"
         IngredientQuantityColumn.Name = "IngredientQuantityColumn"
+        '
+        ' IngredientMaxQuantityColumn
+        '
+        IngredientMaxQuantityColumn.FillWeight = 14.0!
+        IngredientMaxQuantityColumn.HeaderText = "Max"
+        IngredientMaxQuantityColumn.Name = "IngredientMaxQuantityColumn"
         '
         ' IngredientUnitColumn
         '
-        IngredientUnitColumn.FillWeight = 18.0!
-        IngredientUnitColumn.HeaderText = "Unit"
+        IngredientUnitColumn.DisplayStyle = DataGridViewComboBoxDisplayStyle.DropDownButton
+        IngredientUnitColumn.FillWeight = 22.0!
+        IngredientUnitColumn.FlatStyle = FlatStyle.Flat
+        IngredientUnitColumn.HeaderText = "Measurement"
         IngredientUnitColumn.Name = "IngredientUnitColumn"
         '
         ' PreparationMethodLabel
@@ -287,7 +298,7 @@ Partial Class AddRecipe
         PreparationMethodTextBox.Multiline = True
         PreparationMethodTextBox.Name = "PreparationMethodTextBox"
         PreparationMethodTextBox.ScrollBars = ScrollBars.Vertical
-        PreparationMethodTextBox.Size = New Size(430, 178)
+        PreparationMethodTextBox.Size = New Size(560, 178)
         PreparationMethodTextBox.TabIndex = 19
         '
         ' NotesLabel
@@ -307,14 +318,14 @@ Partial Class AddRecipe
         NotesTextBox.Multiline = True
         NotesTextBox.Name = "NotesTextBox"
         NotesTextBox.ScrollBars = ScrollBars.Vertical
-        NotesTextBox.Size = New Size(430, 117)
+        NotesTextBox.Size = New Size(560, 117)
         NotesTextBox.TabIndex = 21
         '
         ' AddRecipe
         '
         AutoScaleDimensions = New SizeF(7F, 15F)
         AutoScaleMode = AutoScaleMode.Font
-        ClientSize = New Size(850, 660)
+        ClientSize = New Size(980, 660)
         Controls.Add(ServingsTextBox)
         Controls.Add(ServingsLabel)
         Controls.Add(NotesTextBox)
@@ -339,7 +350,7 @@ Partial Class AddRecipe
         Controls.Add(Label2)
         Controls.Add(Label1)
         Controls.Add(NutritionalsDataGrid)
-        MinimumSize = New Size(866, 699)
+        MinimumSize = New Size(996, 699)
         Name = "AddRecipe"
         StartPosition = FormStartPosition.CenterScreen
         Text = "Add Recipe"
@@ -374,7 +385,8 @@ Partial Class AddRecipe
     Friend WithEvents IngredientNameColumn As DataGridViewTextBoxColumn
     Friend WithEvents IngredientDetailsColumn As DataGridViewTextBoxColumn
     Friend WithEvents IngredientQuantityColumn As DataGridViewTextBoxColumn
-    Friend WithEvents IngredientUnitColumn As DataGridViewTextBoxColumn
+    Friend WithEvents IngredientMaxQuantityColumn As DataGridViewTextBoxColumn
+    Friend WithEvents IngredientUnitColumn As DataGridViewComboBoxColumn
     Friend WithEvents PreparationMethodLabel As Label
     Friend WithEvents PreparationMethodTextBox As TextBox
     Friend WithEvents NotesLabel As Label

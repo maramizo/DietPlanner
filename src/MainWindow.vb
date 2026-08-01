@@ -7,6 +7,11 @@
         "Dinner",
         "Snack"
     }
+    Private ReadOnly _recipeRefreshTimer As New Timer With {
+        .Interval = 1_500
+    }
+    Private _lastMealsWriteUtc As DateTime = DateTime.MinValue
+    Private _refreshingExternalRecipes As Boolean
 
     Private Class AdvancedMigrationResult
         Public Property ChangedCount As Integer
@@ -40,10 +45,21 @@
     Public Sub New()
         InitializeComponent()
         ApplyAppIcon(Me)
+        AddHandler _recipeRefreshTimer.Tick,
+            AddressOf RecipeRefreshTimer_Tick
     End Sub
 
     Private Async Function LoadDataAsync() As Task
         Dim meals = MealRepository.LoadAll()
+        Dim localMeasurementUpgradeCount As Integer
+        For Each meal In meals
+            If meal.UpgradeIngredientMeasurementData() Then
+                localMeasurementUpgradeCount += 1
+            End If
+        Next
+        If localMeasurementUpgradeCount > 0 Then
+            MealRepository.MergeAll(meals)
+        End If
         Dim advancedCandidateCount = meals.
             Where(Function(meal) meal.NeedsAdvancedScrape()).
             Count()
@@ -139,7 +155,7 @@
                     categoriesChanged OrElse
                     ingredientsChanged OrElse
                     preserveNormalizedCategories Then
-                    MealRepository.SaveAll(meals)
+                    MealRepository.MergeAll(meals)
                 End If
                 If needsCategoryUpgrade AndAlso
                     categoryMigration IsNot Nothing AndAlso
@@ -161,7 +177,10 @@
             End If
         End If
 
+        Dim mealsWriteUtc = GetMealsWriteUtc()
+        meals = MealRepository.LoadAll()
         BindMealSelectors(meals)
+        _lastMealsWriteUtc = mealsWriteUtc
         CalculateTotalCalories()
         RecalculateEnabledViewButtons()
     End Function
@@ -348,7 +367,10 @@
         )
     End Sub
 
-    Private Sub BindMealSelectors(meals As List(Of Meal))
+    Private Sub BindMealSelectors(
+        meals As List(Of Meal),
+        Optional preserveSelections As Boolean = False
+    )
         Dim comboBoxes() As ComboBox = {
             ComboBox1,
             ComboBox2,
@@ -356,6 +378,9 @@
             ComboBox4,
             ComboBox5
         }
+        Dim selectedMeals = comboBoxes.
+            Select(Function(comboBox) TryCast(comboBox.SelectedItem, Meal)).
+            ToArray()
 
         For index As Integer = 0 To comboBoxes.Length - 1
             Dim comboBox = comboBoxes(index)
@@ -372,10 +397,47 @@
             comboBox.DataSource = bindingSource
             comboBox.DisplayMember = NameOf(Meal.Name)
             comboBox.DropDownStyle = ComboBoxStyle.DropDown
-            ClearSelection(comboBox)
+            Dim selectedIndex = -1
+            Dim selectedMeal = selectedMeals(index)
+            If preserveSelections AndAlso selectedMeal IsNot Nothing Then
+                selectedIndex = matchingMeals.FindIndex(
+                    Function(meal) AreSameMeal(meal, selectedMeal)
+                )
+            End If
+            If selectedIndex >= 0 Then
+                comboBox.SelectedIndex = selectedIndex
+            Else
+                ClearSelection(comboBox)
+            End If
             AddHandler comboBox.SelectedIndexChanged, AddressOf ComboBox_SelectedIndexChanged
         Next
     End Sub
+
+    Private Shared Function AreSameMeal(left As Meal, right As Meal) As Boolean
+        If left Is Nothing OrElse right Is Nothing Then Return False
+        If Not String.IsNullOrWhiteSpace(left.Recipe) AndAlso
+            Not String.IsNullOrWhiteSpace(right.Recipe) Then
+            Return String.Equals(
+                left.Recipe.Trim().TrimEnd("/"c),
+                right.Recipe.Trim().TrimEnd("/"c),
+                StringComparison.OrdinalIgnoreCase
+            )
+        End If
+        Return String.Equals(
+            If(left.Name, String.Empty).Trim(),
+            If(right.Name, String.Empty).Trim(),
+            StringComparison.CurrentCultureIgnoreCase
+        )
+    End Function
+
+    Private Shared Function GetMealsWriteUtc() As DateTime
+        Dim mealsPath = MealRepository.GetMealsFilePath()
+        Return If(
+            IO.File.Exists(mealsPath),
+            IO.File.GetLastWriteTimeUtc(mealsPath),
+            DateTime.MinValue
+        )
+    End Function
 
     Private Sub ClearSelection(comboBox As ComboBox)
         comboBox.SelectedIndex = -1
@@ -384,6 +446,7 @@
 
     Private Async Sub MainWindow_Load(sender As Object, e As EventArgs) Handles MyBase.Load
         System.Text.Encoding.RegisterProvider(System.Text.CodePagesEncodingProvider.Instance)
+        BrowserExtensionInstaller.RepairExistingRegistrations()
         Try
             Await LoadDataAsync()
         Catch ex As Exception
@@ -394,6 +457,7 @@
                 MessageBoxIcon.Error
             )
         End Try
+        _recipeRefreshTimer.Start()
 
 #If Not DEBUG Then
         If Await AutoUpdater.TryInstallLatestReleaseAsync(Me) Then
@@ -510,6 +574,51 @@
         Using settings As New SettingsForm()
             settings.ShowDialog(Me)
         End Using
+    End Sub
+
+    Private Sub BrowserExtensionButton_Click(
+        sender As Object,
+        e As EventArgs
+    ) Handles BrowserExtensionButton.Click
+        Using setup As New BrowserExtensionSetupForm()
+            setup.ShowDialog(Me)
+        End Using
+    End Sub
+
+    Private Sub RecipeRefreshTimer_Tick(sender As Object, e As EventArgs)
+        If _refreshingExternalRecipes Then Return
+
+        Dim currentWriteUtc As DateTime
+        Try
+            currentWriteUtc = GetMealsWriteUtc()
+        Catch ex As IO.IOException
+            Return
+        Catch ex As UnauthorizedAccessException
+            Return
+        End Try
+        If currentWriteUtc = _lastMealsWriteUtc Then Return
+
+        _refreshingExternalRecipes = True
+        Try
+            Dim observedWriteUtc = currentWriteUtc
+            Dim meals = MealRepository.LoadAll()
+            BindMealSelectors(meals, preserveSelections:=True)
+            CalculateTotalCalories()
+            RecalculateEnabledViewButtons()
+            _lastMealsWriteUtc = observedWriteUtc
+        Catch ex As IO.IOException
+        Catch ex As UnauthorizedAccessException
+        Finally
+            _refreshingExternalRecipes = False
+        End Try
+    End Sub
+
+    Private Sub MainWindow_FormClosed(
+        sender As Object,
+        e As FormClosedEventArgs
+    ) Handles MyBase.FormClosed
+        _recipeRefreshTimer.Stop()
+        _recipeRefreshTimer.Dispose()
     End Sub
 
     Private Async Sub AddMeal_FormClosed(sender As Object, e As FormClosedEventArgs)

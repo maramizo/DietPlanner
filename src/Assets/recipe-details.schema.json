@@ -18,11 +18,16 @@
           "Details": {
             "type": "string"
           },
-          "Quantity": {
-            "type": "number",
-            "minimum": 0
+          "Amount": {
+            "type": "string"
           },
-          "Unit": {
+          "MinAmount": {
+            "type": "string"
+          },
+          "MaxAmount": {
+            "type": "string"
+          },
+          "Measurement": {
             "type": "string",
             "enum": [
               "teaspoon",
@@ -34,6 +39,7 @@
               "gallon",
               "milliliter",
               "liter",
+              "milligram",
               "ounce",
               "pound",
               "gram",
@@ -49,13 +55,19 @@
               "to taste",
               "none"
             ]
+          },
+          "OriginalMeasurement": {
+            "type": "string"
           }
         },
         "required": [
           "Ingredient",
           "Details",
-          "Quantity",
-          "Unit"
+          "Amount",
+          "MinAmount",
+          "MaxAmount",
+          "Measurement",
+          "OriginalMeasurement"
         ],
         "additionalProperties": false
       }
